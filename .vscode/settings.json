@@ -1,0 +1,14 @@
+{
+    "cortex-debug.gdbPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gdb",
+    "cortex-debug.objdumpPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-objdump",
+    "cortex-debug.openocdPath": "/usr/local/bin/openocd",
+    "terminal.integrated.fontSize": 16,
+    "makefile.configureOnOpen": true,
+    "serialmonitor.port": "/dev/ttyACM0",
+    "serialmonitor.baudRate": 115200,
+    "serialmonitor.dataBits": 8,
+    "serialmonitor.parity": "none",
+    "serialmonitor.stopBits": 1,
+    "serialmonitor.flowControl": "none",
+    "serialmonitor.autoOpen": true
+}
