@@ -26,7 +26,17 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "ili9341.h"
+#include "xpt2046_spi.h"
+#include "pressure_adc.h"
+#include "relay.h"
+#include "digital_in.h"
+#include "settings.h"
+#include "alarms.h"
+#include "compressor_sm.h"
+#include "ui_main.h"
+#include "ui_settings.h"
+#include "ui_alarms.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -47,7 +57,9 @@
 /* Private variables ---------------------------------------------------------*/
 
 /* USER CODE BEGIN PV */
-
+typedef enum { SCREEN_MAIN, SCREEN_SETTINGS, SCREEN_ALARMS } Screen_t;
+static Screen_t s_screen = SCREEN_MAIN;
+static bool     s_full_redraw = true;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -55,12 +67,31 @@ void SystemClock_Config(void);
 void PeriphCommonClock_Config(void);
 static void MPU_Config(void);
 /* USER CODE BEGIN PFP */
-
+void UI_ShowMain(void);
+void UI_ShowSettings(void);
+void UI_ShowAlarms(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+void UI_ShowMain(void)
+{
+    s_screen = SCREEN_MAIN;
+    s_full_redraw = true;
+}
 
+void UI_ShowSettings(void)
+{
+    UI_Settings_Enter();
+    s_screen = SCREEN_SETTINGS;
+    s_full_redraw = true;
+}
+
+void UI_ShowAlarms(void)
+{
+    s_screen = SCREEN_ALARMS;
+    s_full_redraw = true;
+}
 /* USER CODE END 0 */
 
 /**
@@ -104,15 +135,95 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  /* --- BSP init --- */
+  /* Backlight: start TIM3 PWM on PC6 (AF2, already configured by MX_TIM3_Init) */
+  LL_TIM_EnableCounter(TIM3);
+  LL_TIM_CC_EnableChannel(TIM3, LL_TIM_CHANNEL_CH1);
+
+  /* Display */
+  lcdInit();
+  lcdSetOrientation(LCD_ORIENTATION_LANDSCAPE);
+
+  /* Touch */
+  XPT2046_Init();
+
+  /* Pressure ADC: calibrate + enable */
+  PADC_Init();
+
+  /* Relay outputs */
+  Relay_Init();
+
+  /* Digital inputs: read initial states */
+  DigIn_Init();
+
+  /* --- App init --- */
+  Alarms_Init();
+  Settings_Init();
+  SM_Init(Settings_Get());
+
+  /* Sync SM with actual input states */
+  SM_SetOilSwitch(DigIn_IsOilPressureOK());
+  SM_SetEStop(DigIn_IsEStopActive());
+
+  /* Initial screen */
+  s_screen = SCREEN_MAIN;
+  s_full_redraw = true;
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+  uint32_t adc_tick = 0;
+  uint32_t ui_tick  = 0;
+
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    /* ADC at ~10 Hz */
+    if (HAL_GetTick() - adc_tick >= 100u) {
+        adc_tick = HAL_GetTick();
+        PADC_Sample();
+        if (PADC_IsFault()) Alarms_Set(ALARM_PRESSURE_FAULT);
+        else                Alarms_Clear(ALARM_PRESSURE_FAULT);
+    }
+
+    /* Relay dead-time management */
+    Relay_Update();
+
+    /* Synchronise digital-input state to SM */
+    SM_SetOilSwitch(DigIn_IsOilPressureOK());
+    SM_SetEStop(DigIn_IsEStopActive());
+    if (DigIn_ConsumeEStopReset()) {
+        /* Physical e-stop released — allow manual reset via UI */
+    }
+
+    /* State machine */
+    SM_Update(PADC_GetPSI());
+
+    /* Touch */
+    Touch_t touch = {0};
+    if (XPT2046_Read(&touch) && touch.pressed) {
+        switch (s_screen) {
+        case SCREEN_MAIN:     UI_Main_Touch(touch.x, touch.y);     break;
+        case SCREEN_SETTINGS: UI_Settings_Touch(touch.x, touch.y); break;
+        case SCREEN_ALARMS:   UI_Alarms_Touch(touch.x, touch.y);   break;
+        }
+    }
+
+    /* UI at ~20 Hz */
+    if (HAL_GetTick() - ui_tick >= 50u) {
+        ui_tick = HAL_GetTick();
+        switch (s_screen) {
+        case SCREEN_MAIN:     UI_Main_Draw(s_full_redraw);     break;
+        case SCREEN_SETTINGS: UI_Settings_Draw(s_full_redraw); break;
+        case SCREEN_ALARMS:   UI_Alarms_Draw(s_full_redraw);   break;
+        }
+        s_full_redraw = false;
+    }
+
   }
   /* USER CODE END 3 */
 }
