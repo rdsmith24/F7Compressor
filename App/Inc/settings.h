@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#define SETTINGS_MAGIC  0xC0FFEE01UL
+#define SETTINGS_MAGIC  0xC0FFEE02UL   /* increment when struct layout changes */
 
 /* STM32H723ZG sector 7 — last 128KB, safe from code overlap */
 #define SETTINGS_FLASH_ADDR  0x080E0000UL
@@ -16,20 +16,24 @@ typedef struct {
     uint16_t pressure_max_psi;
     uint16_t pressure_span_psi;
     uint16_t auto_restart_en;
+    uint16_t pressure_high_alarm_psi;   /* alarm threshold above cut-out */
+    uint16_t pressure_high_high_psi;    /* emergency shutdown threshold */
     uint16_t checksum;
-    uint8_t  _pad[16];          /* pad struct to 32 bytes (1 flash word) */
+    uint8_t  _pad[12];          /* pad struct to 32 bytes (1 flash word) */
 } Settings_t;
 
 /* Defaults applied when flash is erased or checksum fails */
 #define SETTINGS_DEFAULT { \
-    .magic               = SETTINGS_MAGIC, \
-    .oil_pressure_delay_s = 5, \
-    .pressure_min_psi    = 80, \
-    .pressure_max_psi    = 100, \
-    .pressure_span_psi   = 10, \
-    .auto_restart_en     = 1, \
-    .checksum            = 0, \
-    ._pad                = {0} \
+    .magic                    = SETTINGS_MAGIC, \
+    .oil_pressure_delay_s     = 5, \
+    .pressure_min_psi         = 80, \
+    .pressure_max_psi         = 100, \
+    .pressure_span_psi        = 10, \
+    .auto_restart_en          = 1, \
+    .pressure_high_alarm_psi  = 110, \
+    .pressure_high_high_psi   = 120, \
+    .checksum                 = 0, \
+    ._pad                     = {0} \
 }
 
 void      Settings_Init(void);

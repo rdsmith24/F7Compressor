@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>F7Compressor UI Mockup — 320×240</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+    background: #1a1a1a;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    padding: 28px;
+    min-height: 100vh;
+}
+
+/* LCD at 2× scale = 640×480 */
+.lcd {
+    width: 640px;
+    height: 480px;
+    background: #000;
+    position: relative;
+    overflow: hidden;
+    border: 4px solid #444;
+    border-radius: 3px;
+    flex-shrink: 0;
+    user-select: none;
+}
+
+/* HEADER — Y 0–31 → 0–63px */
+.hdr {
+    position: absolute;
+    left: 0; top: 0;
+    width: 640px; height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    z-index: 3;
+}
+.hdr-state { font-size: 30px; font-weight: bold; color: #000; flex: 1; letter-spacing: 1px; }
+.hdr-psi   { font-size: 30px; font-weight: bold; color: #000; }
+
+/* CENTRE — Y 32–199 → 64–399px */
+.centre {
+    position: absolute;
+    left: 0; top: 64px;
+    width: 640px; height: 336px;
+    background: #000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding-top: 40px;
+    z-index: 1;
+}
+.big-row    { display: flex; align-items: flex-end; }
+.big-psi    { font-size: 100px; font-weight: bold; color: #fff; letter-spacing: 2px; }
+.big-unit   { font-size: 38px; color: #c0c0c0; margin-bottom: 12px; margin-left: 10px; }
+.snsr-fault { font-size: 44px; font-weight: bold; color: #f00; margin-top: 40px; }
+.setpoints  { margin-top: 14px; text-align: left; }
+.setpt-line { font-size: 20px; color: #00d0d0; line-height: 1.7; letter-spacing: 1px; }
+
+/* ALARM BANNER — Y 172–197 → 344–395px, left 240px (x=0–479) */
+.alarm-bar {
+    position: absolute;
+    left: 0; top: 344px;
+    width: 480px; height: 52px;
+    display: flex;
+    align-items: center;
+    padding: 0 8px;
+    z-index: 2;
+}
+.alarm-bar span { font-size: 22px; color: #fff; font-weight: bold; }
+
+/* OIL STATUS — Y 172–197 → 344–395px, right 80px (x=480–639), above SETTINGS btn */
+.oil-status {
+    position: absolute;
+    left: 480px; top: 344px;
+    width: 160px; height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+.oil-status span { font-size: 19px; font-weight: bold; letter-spacing: 1px; }
+
+/* BUTTON BAR — Y 200–239 → 400–479px */
+.btn-bar {
+    position: absolute;
+    left: 0; top: 400px;
+    width: 640px; height: 80px;
+    display: flex;
+    z-index: 3;
+}
+.btn {
+    flex: 1;
+    border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 21px; font-weight: bold; color: #fff;
+    cursor: pointer; letter-spacing: 1px;
+}
+.btn:active { filter: brightness(1.3); }
+
+/* ── SETTINGS SCREEN — ROW_H=24 → 48px scaled; 7 rows + hdr(64) + btns ── */
+.set-hdr {
+    position: absolute; left: 0; top: 0;
+    width: 640px; height: 64px;
+    background: #000080;
+    display: flex; align-items: center; padding: 0 14px; z-index: 3;
+}
+.set-hdr span { color: #fff; font-size: 30px; font-weight: bold; }
+
+.set-rows {
+    position: absolute; left: 0; top: 64px;
+    width: 640px; background: #000;
+}
+.set-row {
+    height: 48px;   /* 24px * 2 */
+    display: flex; align-items: center;
+    border-bottom: 1px solid #1a1a1a;
+    padding: 0 10px; gap: 6px;
+}
+.set-lbl  { flex: 1; font-size: 20px; color: #fff; }
+.set-val  { font-size: 22px; color: #ff0; min-width: 68px; text-align: right; }
+.set-btn  {
+    width: 54px; height: 40px;
+    border: 2px solid #888; background: #222;
+    color: #fff; font-size: 26px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border-radius: 2px;
+}
+.set-btn:active { background: #444; }
+
+.set-footer {
+    position: absolute; left: 0; top: 464px; /* 64 + 7*48 = 64+336 = 400 → *2=800? */
+    width: 640px; height: 80px;
+    display: flex; z-index: 3;
+}
+
+/* ── ALARMS SCREEN — ROW_H=26 → 52px; 6 rows + hdr(64) = 376; btn starts at 376 ── */
+.alm-hdr {
+    position: absolute; left: 0; top: 0;
+    width: 640px; height: 64px;
+    background: #8b0000;
+    display: flex; align-items: center; padding: 0 14px;
+    cursor: pointer; z-index: 3;
+}
+.alm-hdr span { color: #fff; font-size: 30px; font-weight: bold; }
+
+.alm-rows {
+    position: absolute; left: 0; top: 64px;
+    width: 640px; background: #000;
+}
+.alm-row {
+    height: 52px;  /* 26px * 2 */
+    display: flex; align-items: center;
+    padding: 0 20px;
+    border-bottom: 1px solid #111;
+}
+.alm-row-lbl  { font-size: 24px; font-weight: bold; }
+.alm-inactive .alm-row-lbl   { color: #333; }
+.alm-unacked  { background: #b00000; }
+.alm-unacked .alm-row-lbl    { color: #fff; }
+.alm-acked    { background: #1a1a1a; }
+.alm-acked .alm-row-lbl      { color: #666; }
+
+/* 6 rows × 52 = 312; top of footer = 64+312 = 376 → 376px */
+.alm-ftr {
+    position: absolute; left: 0; top: 376px;
+    width: 640px; height: 104px;  /* 480-376 */
+    background: #383838;
+    border: 2px solid #fff;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; z-index: 3;
+}
+.alm-ftr span { color: #fff; font-size: 26px; font-weight: bold; }
+.alm-ftr:active { background: #555; }
+
+/* ── CONTROLS PANEL ── */
+.controls {
+    background: #252525;
+    border: 1px solid #383838;
+    border-radius: 8px;
+    padding: 18px;
+    min-width: 230px;
+    color: #ccc;
+}
+.controls h3 { color: #888; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 14px; }
+.ctrl { margin-bottom: 12px; }
+.ctrl label { display: block; font-size: 12px; color: #777; margin-bottom: 4px; }
+.ctrl select { width: 100%; background: #333; color: #eee; border: 1px solid #555; padding: 4px; font-family: monospace; }
+.ctrl input[type=range] { width: 100%; }
+.ctrl input[type=checkbox] { margin-right: 4px; }
+.psi-val { color: #ff0; }
+.scr-btns { display: flex; flex-direction: column; gap: 5px; }
+.scr-btn {
+    padding: 6px 10px; background: #333;
+    border: 1px solid #555; color: #bbb;
+    border-radius: 3px; cursor: pointer;
+    font-size: 13px; font-family: monospace; text-align: left;
+}
+.scr-btn.active { background: #003; border-color: #44f; color: #aaf; }
+.note { font-size: 11px; color: #555; margin-top: 12px; line-height: 1.5; }
+.divider { border-top: 1px solid #383838; margin: 10px 0; }
+</style>
+</head>
+<body>
+
+<div class="lcd" id="lcd"></div>
+
+<div class="controls">
+    <h3>Simulator</h3>
+
+    <div class="ctrl">
+        <label>Screen</label>
+        <div class="scr-btns">
+            <button class="scr-btn active" id="scr-main"     onclick="setScreen('main')">Main</button>
+            <button class="scr-btn"        id="scr-settings" onclick="setScreen('settings')">Settings</button>
+            <button class="scr-btn"        id="scr-alarms"   onclick="setScreen('alarms')">Alarms</button>
+        </div>
+    </div>
+
+    <div class="ctrl">
+        <label>Compressor State</label>
+        <select id="state-sel" onchange="setState(this.value)">
+            <option value="IDLE">IDLE</option>
+            <option value="STARTING">STARTING</option>
+            <option value="RUNNING" selected>RUNNING</option>
+            <option value="STOPPING">STOPPING</option>
+            <option value="FAULT">FAULT</option>
+            <option value="E-STOP">E-STOP</option>
+        </select>
+    </div>
+
+    <div class="ctrl">
+        <label>Pressure &nbsp;<span class="psi-val" id="psi-lbl">85 PSI</span></label>
+        <input type="range" id="psi-range" min="0" max="150" value="85"
+               oninput="setPSI(+this.value)">
+    </div>
+
+    <div class="divider"></div>
+    <div class="ctrl"><label style="color:#aaa;font-size:11px">ALARM CONDITIONS</label></div>
+
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-oil-cb"   onchange="setAlarmBit(0,this.checked)"> Oil pressure timeout</label>
+    </div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-low-cb"   onchange="setAlarmBit(1,this.checked)"> Low discharge pressure</label>
+    </div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-snsr-cb"  onchange="setAlarmBit(2,this.checked)"> Pressure sensor fault</label>
+    </div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-hi-cb"    onchange="setAlarmBit(3,this.checked)"> High pressure alarm</label>
+    </div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-hihi-cb"  onchange="setAlarmBit(4,this.checked)"> High-high shutdown</label>
+    </div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="alarm-estop-cb" onchange="setAlarmBit(5,this.checked)"> Emergency stop</label>
+    </div>
+
+    <div class="divider"></div>
+    <div class="ctrl">
+        <label><input type="checkbox" id="fault-cb" onchange="setFault(this.checked)"> Sensor Fault display</label>
+    </div>
+
+    <div class="ctrl">
+        <label><input type="checkbox" id="oilok-cb" onchange="setOilOk(this.checked)" checked> Oil switch closed (OK)</label>
+    </div>
+
+    <p class="note">LCD buttons are interactive.<br>Settings rows use +/– in browser.</p>
+</div>
+
+<script>
+const STATE_COLOR = {
+    'IDLE':     '#484848',
+    'STARTING': '#b8b800',
+    'RUNNING':  '#00a800',
+    'STOPPING': '#00a8a8',
+    'FAULT':    '#c00000',
+    'E-STOP':   '#a800a8',
+};
+
+const ALARM_LABELS = [
+    'Oil pressure timeout',
+    'Low discharge pressure',
+    'Pressure sensor fault',
+    'High pressure alarm',
+    'High-high shutdown',
+    'Emergency stop',
+];
+
+let screen   = 'main';
+let state    = 'RUNNING';
+let psi      = 85;
+let hasFault = false;
+let oilOk    = true;
+
+// alarm state per bit: 0=inactive, 1=active+unacked, 2=active+acked
+let alarmState = [0, 0, 0, 0, 0, 0];
+
+const cfg = {
+    oil_delay:    5,
+    min_psi:      80,
+    max_psi:      100,
+    hysteresis:   10,
+    auto_restart: true,
+    hi_alarm:     110,
+    hi_hi:        120,
+};
+
+function setScreen(s) {
+    screen = s;
+    ['main','settings','alarms'].forEach(k =>
+        document.getElementById('scr-'+k).classList.toggle('active', k === s));
+    render();
+}
+function setState(s) { state = s; render(); }
+function setPSI(v) {
+    psi = v;
+    document.getElementById('psi-lbl').textContent = v + ' PSI';
+    render();
+}
+function setAlarmBit(idx, v) {
+    alarmState[idx] = v ? 1 : 0;
+    render();
+}
+function setFault(v) { hasFault = v; render(); }
+function setOilOk(v) { oilOk = v; render(); }
+
+function hasAnyUnacked() {
+    return alarmState.some(a => a === 1);
+}
+
+/* ── MAIN SCREEN ── */
+function renderMain() {
+    const hc = STATE_COLOR[state] || '#484848';
+    const running = state === 'RUNNING' || state === 'STARTING';
+    const startLbl = running ? 'STOP'  : 'START';
+    const startBg  = running ? '#7a0000' : '#005000';
+
+    const cut_in  = cfg.max_psi - cfg.hysteresis;
+    const cut_out = cfg.max_psi;
+
+    let centre;
+    if (hasFault) {
+        centre = `<span class="snsr-fault">SENSOR FAULT</span>`;
+    } else {
+        centre = `
+            <div class="big-row">
+                <span class="big-psi">${String(psi).padStart(3)}</span>
+                <span class="big-unit">PSI</span>
+            </div>
+            <div class="setpoints">
+                <div class="setpt-line">CUT-IN :${String(cut_in).padStart(3)} PSI</div>
+                <div class="setpt-line">CUT-OUT:${String(cut_out).padStart(3)} PSI</div>
+            </div>`;
+    }
+
+    const alarmBar = hasAnyUnacked()
+        ? `<div class="alarm-bar" style="background:#c00000">
+               <span>! ALARM - tap ALARMS</span></div>`
+        : `<div class="alarm-bar" style="background:#000"></div>`;
+
+    /* Oil pressure indicator above SETTINGS button */
+    let oilLbl, oilBg, oilFg;
+    if (oilOk) {
+        oilLbl = 'OIL OK';   oilBg = '#005000'; oilFg = '#fff';
+    } else if (state === 'STARTING') {
+        oilLbl = 'OIL WAIT'; oilBg = '#c8c000'; oilFg = '#000';
+    } else {
+        oilLbl = 'OIL LOW';  oilBg = '#c00000'; oilFg = '#fff';
+    }
+    const oilBox = `<div class="oil-status" style="background:${oilBg}">
+                        <span style="color:${oilFg}">${oilLbl}</span></div>`;
+
+    return `
+        <div class="hdr" style="background:${hc}">
+            <span class="hdr-state">${state}</span>
+            <span class="hdr-psi">${String(psi).padStart(3)} PSI</span>
+        </div>
+        <div class="centre">${centre}</div>
+        ${alarmBar}
+        ${oilBox}
+        <div class="btn-bar">
+            <div class="btn" style="background:${startBg}"  onclick="mainStartStop()">${startLbl}</div>
+            <div class="btn" style="background:#2a2a2a"      onclick="mainReset()">RESET</div>
+            <div class="btn" style="background:#2a2a2a"      onclick="setScreen('alarms')">ALARMS</div>
+            <div class="btn" style="background:#000080"      onclick="setScreen('settings')">SETTINGS</div>
+        </div>`;
+}
+
+function mainStartStop() {
+    const sel = document.getElementById('state-sel');
+    if (state === 'IDLE' || state === 'STOPPING')       { sel.value = 'STARTING'; setState('STARTING'); }
+    else if (state === 'RUNNING' || state === 'STARTING'){ sel.value = 'STOPPING'; setState('STOPPING'); }
+}
+function mainReset() {
+    if (state === 'FAULT' || state === 'E-STOP') {
+        document.getElementById('state-sel').value = 'IDLE';
+        setState('IDLE');
+    }
+}
+
+/* ── SETTINGS SCREEN — 7 rows × 48px = 336; header 64; footer at 400 ── */
+function renderSettings() {
+    const rows = [
+        { lbl: 'Oil delay (s)',       val: cfg.oil_delay,    unit: ' s',   key: 'oil_delay',    min: 1,  max: 60,  toggle: false },
+        { lbl: 'Min pressure (PSI)',  val: cfg.min_psi,      unit: ' PSI', key: 'min_psi',      min: 0,  max: 150, toggle: false },
+        { lbl: 'Max pressure (PSI)',  val: cfg.max_psi,      unit: ' PSI', key: 'max_psi',      min: 10, max: 200, toggle: false },
+        { lbl: 'Hysteresis (PSI)',    val: cfg.hysteresis,   unit: ' PSI', key: 'hysteresis',   min: 1,  max: 50,  toggle: false },
+        { lbl: 'Auto-restart',        val: cfg.auto_restart, unit: '',     key: 'auto_restart',  toggle: true },
+        { lbl: 'High alarm (PSI)',    val: cfg.hi_alarm,     unit: ' PSI', key: 'hi_alarm',     min: 10, max: 220, toggle: false },
+        { lbl: 'HiHi stop (PSI)',     val: cfg.hi_hi,        unit: ' PSI', key: 'hi_hi',        min: 10, max: 230, toggle: false },
+    ];
+
+    const rowsHtml = rows.map(r => {
+        const dispVal = r.toggle ? (r.val ? 'ON' : 'OFF') : (r.val + r.unit);
+        const valColor = r.toggle ? (r.val ? '#00e000' : '#e00000') : '#ff0';
+        const btns = r.toggle
+            ? `<div class="set-btn" onclick="settingToggle('${r.key}')">◀▶</div>`
+            : `<div class="set-btn" onclick="settingAdj('${r.key}',-1,${r.min},${r.max})">–</div>
+               <div class="set-btn" onclick="settingAdj('${r.key}',+1,${r.min},${r.max})">+</div>`;
+        return `<div class="set-row">
+                    <span class="set-lbl">${r.lbl}</span>
+                    <span class="set-val" style="color:${valColor}">${dispVal}</span>
+                    ${btns}
+                </div>`;
+    }).join('');
+
+    return `
+        <div class="set-hdr"><span>SETTINGS</span></div>
+        <div class="set-rows">${rowsHtml}</div>
+        <div class="btn-bar" style="position:absolute;top:400px;width:640px;z-index:3">
+            <div class="btn" style="background:#3a3a3a" onclick="setScreen('main')">CANCEL</div>
+            <div class="btn" style="background:#005000" onclick="setScreen('main')">SAVE</div>
+        </div>`;
+}
+
+function settingAdj(key, delta, min, max) {
+    cfg[key] = Math.max(min, Math.min(max, cfg[key] + delta));
+    render();
+}
+function settingToggle(key) { cfg[key] = !cfg[key]; render(); }
+
+/* ── ALARMS SCREEN — 6 rows × 52px = 312; header 64; footer at 376 ── */
+function renderAlarms() {
+    const rowsHtml = ALARM_LABELS.map((n, i) => {
+        const cls = ['alm-inactive','alm-unacked','alm-acked'][alarmState[i]];
+        const prefix = alarmState[i] === 1 ? '! ' : alarmState[i] === 2 ? '  ' : '   ';
+        return `<div class="alm-row ${cls}">
+                    <span class="alm-row-lbl">${prefix}${n}</span>
+                </div>`;
+    }).join('');
+
+    return `
+        <div class="alm-hdr" onclick="setScreen('main')">
+            <span>← ALARMS</span>
+        </div>
+        <div class="alm-rows">${rowsHtml}</div>
+        <div class="alm-ftr" onclick="ackAll()">
+            <span>ACKNOWLEDGE ALL</span>
+        </div>`;
+}
+
+function ackAll() {
+    alarmState = alarmState.map(a => a === 1 ? 2 : a);
+    // sync checkboxes
+    ['oil','low','snsr','hi','hihi','estop'].forEach((id, i) => {
+        const cb = document.getElementById('alarm-'+id+'-cb');
+        if (cb) cb.checked = alarmState[i] !== 0;
+    });
+    render();
+}
+
+function render() {
+    const lcd = document.getElementById('lcd');
+    if (screen === 'main')     lcd.innerHTML = renderMain();
+    if (screen === 'settings') lcd.innerHTML = renderSettings();
+    if (screen === 'alarms')   lcd.innerHTML = renderAlarms();
+}
+
+render();
+</script>
+</body>
+</html>

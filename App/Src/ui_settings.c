@@ -15,13 +15,13 @@ static Settings_t s_edit;
 
 /* --- Layout ---------------------------------------------------------------- */
 #define HDR_H    32u
-#define ROW_H    30u
+#define ROW_H    24u
 #define ROW_Y(n) (HDR_H + (n) * ROW_H)
 #define VAL_X   180u
 #define BTN_W    36u
 #define MINUS_X (VAL_X + 40u)
 #define PLUS_X  (VAL_X + 80u)
-#define BTN_Y_BOTTOM  208u
+#define BTN_Y_BOTTOM  200u   /* HDR_H + NUM_ROWS * ROW_H = 32 + 7*24 = 200 */
 
 /* Row indices */
 #define ROW_OIL_DELAY  0u
@@ -29,7 +29,9 @@ static Settings_t s_edit;
 #define ROW_MAX_PSI    2u
 #define ROW_SPAN_PSI   3u
 #define ROW_AUTO       4u
-#define NUM_ROWS       5u
+#define ROW_HI_ALARM   5u
+#define ROW_HI_HI      6u
+#define NUM_ROWS       7u
 
 static const char *row_labels[NUM_ROWS] = {
     "Oil delay (s)",
@@ -37,6 +39,8 @@ static const char *row_labels[NUM_ROWS] = {
     "Max pressure (PSI)",
     "Hysteresis (PSI)",
     "Auto-restart",
+    "High alarm (PSI)",
+    "HiHi stop (PSI)",
 };
 
 static uint16_t *row_field(uint8_t row)
@@ -47,6 +51,8 @@ static uint16_t *row_field(uint8_t row)
     case ROW_MAX_PSI:   return &s_edit.pressure_max_psi;
     case ROW_SPAN_PSI:  return &s_edit.pressure_span_psi;
     case ROW_AUTO:      return &s_edit.auto_restart_en;
+    case ROW_HI_ALARM:  return &s_edit.pressure_high_alarm_psi;
+    case ROW_HI_HI:     return &s_edit.pressure_high_high_psi;
     default:            return NULL;
     }
 }
@@ -59,6 +65,8 @@ static uint16_t row_min(uint8_t row)
     case ROW_MAX_PSI:   return 10u;
     case ROW_SPAN_PSI:  return 1u;
     case ROW_AUTO:      return 0u;
+    case ROW_HI_ALARM:  return 10u;
+    case ROW_HI_HI:     return 10u;
     default:            return 0u;
     }
 }
@@ -71,6 +79,8 @@ static uint16_t row_max(uint8_t row)
     case ROW_MAX_PSI:   return 200u;
     case ROW_SPAN_PSI:  return 50u;
     case ROW_AUTO:      return 1u;
+    case ROW_HI_ALARM:  return 220u;
+    case ROW_HI_HI:     return 230u;
     default:            return 0xFFFFu;
     }
 }

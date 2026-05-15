@@ -22,7 +22,8 @@ static void enter(SmState_t next)
     switch (next) {
     case SM_IDLE:
         Relay_Request(RELAY_CMD_IDLE);
-        Alarms_Clear(ALARM_OIL_TIMEOUT | ALARM_PRESSURE_FAULT);
+        Alarms_Clear(ALARM_OIL_TIMEOUT | ALARM_PRESSURE_FAULT |
+                     ALARM_LOW_PRESSURE | ALARM_HIGH_PRESSURE | ALARM_HIGH_HIGH_PRES);
         break;
     case SM_STARTING:
         Relay_Request(RELAY_CMD_START);
@@ -79,6 +80,9 @@ void SM_Update(uint16_t pressure_psi)
             enter(SM_RUNNING);
         } else if (elapsed_s >= s_cfg->oil_pressure_delay_s) {
             Alarms_Set(ALARM_OIL_TIMEOUT);
+            if (pressure_psi < s_cfg->pressure_min_psi) {
+                Alarms_Set(ALARM_LOW_PRESSURE);
+            }
             enter(SM_FAULT);
         }
         break;
@@ -86,12 +90,26 @@ void SM_Update(uint16_t pressure_psi)
     case SM_RUNNING:
         if (!s_oil_ok) {
             enter(SM_FAULT);
+        } else if (pressure_psi >= s_cfg->pressure_high_high_psi) {
+            Alarms_Set(ALARM_HIGH_HIGH_PRES);
+            enter(SM_FAULT);
+        } else if (pressure_psi >= s_cfg->pressure_high_alarm_psi) {
+            Alarms_Set(ALARM_HIGH_PRESSURE);
+            enter(SM_STOPPING);
         } else if (pressure_psi >= s_cfg->pressure_max_psi) {
             enter(SM_STOPPING);
+        } else {
+            Alarms_Clear(ALARM_HIGH_PRESSURE);
         }
         break;
 
     case SM_STOPPING:
+        /* Emergency: pressure still rising despite stop command */
+        if (pressure_psi >= s_cfg->pressure_high_high_psi) {
+            Alarms_Set(ALARM_HIGH_HIGH_PRES);
+            enter(SM_FAULT);
+            break;
+        }
         /* Restart threshold: max - hysteresis */
         if (pressure_psi <= (uint16_t)(s_cfg->pressure_max_psi - s_cfg->pressure_span_psi)) {
             if (s_cfg->auto_restart_en) {
@@ -105,7 +123,8 @@ void SM_Update(uint16_t pressure_psi)
     case SM_FAULT:
         if (s_req_reset) {
             s_req_reset = false;
-            Alarms_Clear(ALARM_OIL_TIMEOUT | ALARM_PRESSURE_FAULT);
+            Alarms_Clear(ALARM_OIL_TIMEOUT | ALARM_PRESSURE_FAULT |
+                         ALARM_LOW_PRESSURE | ALARM_HIGH_HIGH_PRES);
             enter(SM_IDLE);
         }
         break;
@@ -146,6 +165,11 @@ void SM_SetOilSwitch(bool ok)
 SmState_t SM_GetState(void)
 {
     return s_state;
+}
+
+bool SM_GetOilOk(void)
+{
+    return s_oil_ok;
 }
 
 const char *SM_GetStateName(void)

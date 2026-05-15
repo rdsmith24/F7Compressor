@@ -18,15 +18,36 @@ make clean        # remove build directory
 
 **Toolchain**: `arm-none-eabi-gcc` must be on `PATH`. Flags: `-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -Og -g -gdwarf-2`.
 
-## VS Code Debug (needs fix)
+## VS Code Debug
 
-`.vscode/launch.json` currently points to a different project (`H7Servo`). Before debugging, update:
-- `executable` → `${workspaceRoot}/build/F7Compressor.elf`
-- `svdFile` → `${workspaceRoot}/STM32H723.svd`
+**Recommended**: SEGGER J-Link EDU Mini + Cortex-Debug extension + J-Link Software Pack (segger.com).
+
+- Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector)
+- Remove CN2 SWD jumpers to isolate on-board ST-Link
+- `STM32H723.svd` is in the project root
+
+`.vscode/launch.json` currently points to a different project (`H7Servo`). Update before use:
+
+```json
+{
+    "name": "J-Link Debug",
+    "type": "cortex-debug",
+    "request": "launch",
+    "servertype": "jlink",
+    "device": "STM32H723ZG",
+    "interface": "swd",
+    "executable": "${workspaceRoot}/build/F7Compressor.elf",
+    "svdFile": "${workspaceRoot}/STM32H723.svd"
+}
+```
+
+**Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
+- J-Link RTT (preferred with J-Link hardware — no UART, no pins, zero overhead)
+- USART1 (PA9=TX, PA10=RX) + USB-serial adapter (FTDI preferred — native macOS support, shows as `/dev/tty.usbserial-*`)
 
 ## Current Project Status
 
-All bring-up steps are **implemented and compile cleanly** (~30KB flash). The firmware has not yet been flashed to hardware for validation.
+All bring-up steps are **implemented and compile cleanly** (~30.7KB flash). The firmware has not yet been flashed to hardware for validation.
 
 **Completed:**
 - Makefile USER CODE sections present; all BSP and App sources compile.
@@ -34,6 +55,7 @@ All bring-up steps are **implemented and compile cleanly** (~30KB flash). The fi
 - Full BSP layer: display, touch (XPT2046), pressure ADC, relay control, digital inputs.
 - Full App layer: compressor state machine, alarm management, settings (flash storage), three UI screens.
 - `Core/Src/main.c` and `Core/Src/stm32h7xx_it.c` USER CODE blocks filled.
+- High/high-high pressure alarms + shutdowns, low pressure startup fault, cut-in/cut-out setpoint display, oil pressure status indicator.
 
 **Pending (first-time hardware validation):**
 - Flash and confirm display shows IDLE screen (FMC + TIM3 backlight + lcdInit).
@@ -157,42 +179,69 @@ FMC address map: `0x60000000` = command (A0=0), `0x60000002` = data (A0=1). Only
 ### App Modules
 
 #### `settings` — Flash-backed configuration
-- Stored at `0x080E0000` (sector 7, last 128KB). Magic `0xC0FFEE01`, uint16 checksum.
+- Stored at `0x080E0000` (sector 7, last 128KB). Magic `0xC0FFEE02`, uint16 checksum.
 - `Settings_t` padded to 32 bytes for STM32H7 flash word (`FLASH_TYPEPROGRAM_FLASHWORD`).
 - Uses `SCB_CleanInvalidateDCache_by_Addr` / `SCB_InvalidateDCache_by_Addr` around erase/program.
-- Defaults applied if magic or checksum fails.
+- Defaults applied if magic or checksum fails. **Magic must be incremented whenever the struct layout changes.**
 
 ```c
 typedef struct {
-    uint32_t magic;                // 0xC0FFEE01
-    uint16_t oil_pressure_delay_s; // default 5
-    uint16_t pressure_min_psi;     // default 80
-    uint16_t pressure_max_psi;     // default 100
-    uint16_t pressure_span_psi;    // hysteresis deadband, default 10
-    uint16_t auto_restart_en;      // 0=manual reset, 1=auto, default 1
+    uint32_t magic;                   // 0xC0FFEE02
+    uint16_t oil_pressure_delay_s;    // default 5
+    uint16_t pressure_min_psi;        // default 80  (low pressure alarm threshold)
+    uint16_t pressure_max_psi;        // default 100 (normal cut-out)
+    uint16_t pressure_span_psi;       // hysteresis deadband, default 10
+    uint16_t auto_restart_en;         // 0=manual reset, 1=auto, default 1
+    uint16_t pressure_high_alarm_psi; // default 110 (alarm, enter STOPPING)
+    uint16_t pressure_high_high_psi;  // default 120 (emergency shutdown, enter FAULT)
     uint16_t checksum;
-    uint8_t  _pad[16];             // pad to 32 bytes
+    uint8_t  _pad[12];                // pad to 32 bytes
 } Settings_t;
 ```
 
 #### `alarms` — Alarm management
-- Bitmask: `ALARM_OIL_TIMEOUT=0x01`, `ALARM_PRESSURE_FAULT=0x02`, `ALARM_ESTOP=0x04`.
+- Bitmask (uint8_t, 6 bits used):
+
+| Bit | Constant | Cleared by |
+|---|---|---|
+| 0x01 | `ALARM_OIL_TIMEOUT` | FAULT reset / enter IDLE |
+| 0x02 | `ALARM_PRESSURE_FAULT` | FAULT reset / enter IDLE |
+| 0x04 | `ALARM_ESTOP` | E-stop reset path |
+| 0x08 | `ALARM_LOW_PRESSURE` | FAULT reset / enter IDLE |
+| 0x10 | `ALARM_HIGH_PRESSURE` | enter IDLE (auto-cleared when pressure normalises) |
+| 0x20 | `ALARM_HIGH_HIGH_PRES` | FAULT reset / enter IDLE |
+
 - `Alarms_Set()` marks unacknowledged. `Alarms_Acknowledge()` marks acknowledged (clears unack flag).
-- `Alarms_GetUnacknowledged()` used by UI to show the `!` indicator.
+- `Alarms_GetUnacknowledged()` used by UI to show the alarm indicator.
 
 #### `compressor_sm` — State machine
 
 ```
 IDLE → STARTING → RUNNING → STOPPING → IDLE (or STARTING if auto_restart_en)
-          │            │
-      oil timeout   oil fault
-          └──→ FAULT ←──┘
+          │            │         │
+     oil timeout   oil fault  high-high → FAULT
+     low pressure  hi alarm → STOPPING
+          └──→ FAULT ←──────────┘
 [any state] + estop pin HIGH → ESTOP
 ```
 
-- `SM_Update(psi)` called every main-loop iteration. Reads oil/estop state via `SM_SetOilSwitch/EStop()`.
-- Oil timeout: if oil switch stays open for `oil_pressure_delay_s` seconds after entering STARTING → FAULT + `ALARM_OIL_TIMEOUT`.
-- Restart threshold (STOPPING → STARTING/IDLE): `pressure <= pressure_max_psi - pressure_span_psi`.
+Full SM transition logic:
+
+| State | Condition | Action |
+|---|---|---|
+| STARTING | oil switch closes | → RUNNING |
+| STARTING | elapsed ≥ oil_delay AND !oil_ok | ALARM_OIL_TIMEOUT; if psi < min_psi: ALARM_LOW_PRESSURE; → FAULT |
+| RUNNING | !oil_ok | → FAULT |
+| RUNNING | psi ≥ high_high_psi | ALARM_HIGH_HIGH_PRES → FAULT |
+| RUNNING | psi ≥ high_alarm_psi | ALARM_HIGH_PRESSURE → STOPPING |
+| RUNNING | psi ≥ max_psi | → STOPPING (normal cycle) |
+| RUNNING | psi < high_alarm_psi | Alarms_Clear(HIGH_PRESSURE) |
+| STOPPING | psi ≥ high_high_psi | ALARM_HIGH_HIGH_PRES → FAULT |
+| STOPPING | psi ≤ max_psi − span_psi | → STARTING (auto) or IDLE (manual) |
+| FAULT | SM_RequestReset() | clear oil/pressure/low/hihi alarms → IDLE |
+| ESTOP | pin clears AND reset | clear ESTOP alarm → IDLE |
+
+- `SM_GetOilOk()` exposes the internal `s_oil_ok` flag (used by UI oil pressure indicator).
 - E-stop reset requires both: pin goes LOW (`DigIn_ConsumeEStopReset`) AND `SM_RequestReset()` from UI.
 
 ### UI Screens (320×240 landscape)
@@ -200,17 +249,21 @@ IDLE → STARTING → RUNNING → STOPPING → IDLE (or STARTING if auto_restart
 All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Screen switching sets `s_full_redraw = true`.
 
 #### Main screen (`ui_main`)
-- Header (Y 0–31): state name + PSI, colored by state (GREEN=running, YELLOW=starting, CYAN=stopping, RED=fault, MAGENTA=e-stop).
-- Centre (Y 32–199): large PSI number or "SENSOR FAULT"; alarm banner at Y 172 if unacknowledged alarms exist.
-- Button bar (Y 200–239): START/STOP (toggles) | RESET | ALARMS | SETTINGS.
+- **Header (Y 0–31)**: state name + PSI, colored by state (GREEN=running, YELLOW=starting, CYAN=stopping, RED=fault, MAGENTA=e-stop).
+- **Centre (Y 32–171)**: large PSI number; below it in Font12 cyan: `CUT-IN: NNN PSI` / `CUT-OUT: NNN PSI` (live from settings). Shows `SENSOR FAULT` in red if ADC fault.
+- **Status strip (Y 172–197)**: split across full width:
+  - Left 240px: alarm banner (red `! ALARM - tap ALARMS`) or black.
+  - Right 80px (above SETTINGS button): oil pressure indicator — GREEN `OIL OK` / YELLOW `OIL WAIT` (SM_STARTING) / RED `OIL LOW`.
+- **Button bar (Y 200–239)**: START/STOP (toggles label+color) | RESET | ALARMS | SETTINGS.
 
 #### Settings screen (`ui_settings`)
 - `UI_Settings_Enter()` must be called before showing (copies current settings to local edit buffer).
-- Five rows with [-]/[+] buttons: oil delay, min PSI, max PSI, hysteresis, auto-restart.
+- **Seven rows** with [-]/[+] buttons (ROW_H=24px): oil delay, min PSI, max PSI, hysteresis, auto-restart, high alarm PSI, high-high stop PSI.
 - CANCEL discards; SAVE calls `Settings_Save()` and returns to main.
 
 #### Alarms screen (`ui_alarms`)
-- Three rows: oil timeout, pressure fault, e-stop. Active+unacknowledged = red; active+acked = dark grey; inactive = black.
+- **Six rows** (ROW_H=26px): oil timeout, low discharge pressure, pressure sensor fault, high pressure alarm, high-high shutdown, emergency stop.
+- Active+unacknowledged = red; active+acknowledged = dark grey; inactive = black.
 - Tap header to return to main. Tap bottom bar to acknowledge all.
 
 ### Compressor State Machine
@@ -269,3 +322,4 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 7. ✅ Compressor state machine wired to real I/O
 8. ✅ Flash settings read/write (sector 7, D-cache flushed)
 9. ✅ Full UI integration (main, settings, alarms screens)
+10. ✅ High/high-high pressure alarms, low pressure startup fault, cut-in/cut-out display, oil status indicator

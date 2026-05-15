@@ -22,5 +22,6 @@ void      SM_SetEStop(bool active);
 void      SM_SetOilSwitch(bool ok);
 SmState_t SM_GetState(void);
 const char *SM_GetStateName(void);
+bool      SM_GetOilOk(void);
 
 #endif /* COMPRESSOR_SM_H_ */

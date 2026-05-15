@@ -97,17 +97,62 @@ void UI_Main_Draw(bool full_redraw)
         lcdSetCursor(180, 98);
         lcdSetTextColor(COLOR_LIGHTGREY, COLOR_BLACK);
         lcdPrintf("PSI");
+
+        /* Cut-in / cut-out setpoints */
+        const Settings_t *cfg = Settings_Get();
+        uint16_t cut_in  = cfg->pressure_max_psi - cfg->pressure_span_psi;
+        uint16_t cut_out = cfg->pressure_max_psi;
+        lcdSetTextFont(&Font12);
+        lcdSetCursor(50, 130);
+        lcdSetTextColor(COLOR_CYAN, COLOR_BLACK);
+        lcdPrintf("CUT-IN :%3u PSI", (unsigned)cut_in);
+        lcdSetCursor(50, 148);
+        lcdPrintf("CUT-OUT:%3u PSI", (unsigned)cut_out);
     }
 
-    /* Alarm indicator */
+    /* Alarm indicator — left 240px of the strip */
     if (alm) {
-        lcdFillRect(0, 172, 320, 26, COLOR_RED);
+        lcdFillRect(0, 172, 240, 26, COLOR_RED);
         lcdSetTextFont(&Font16);
         lcdSetCursor(4, 179);
         lcdSetTextColor(COLOR_WHITE, COLOR_RED);
-        lcdPrintf("! ALARM ACTIVE — tap ALARMS to view");
+        lcdPrintf("! ALARM - tap ALARMS");
     } else {
-        lcdFillRect(0, 172, 320, 26, COLOR_BLACK);
+        lcdFillRect(0, 172, 240, 26, COLOR_BLACK);
+    }
+
+    /* Oil pressure indicator — right 80px of the strip, above SETTINGS button */
+    {
+        bool oil_ok = SM_GetOilOk();
+        const char *oil_lbl;
+        uint16_t    oil_bg;
+        uint16_t    oil_fg;
+
+        if (oil_ok) {
+            oil_lbl = "OIL OK";
+            oil_bg  = COLOR_DARKGREEN;
+            oil_fg  = COLOR_WHITE;
+        } else if (st == SM_STARTING) {
+            oil_lbl = "OIL WAIT";
+            oil_bg  = COLOR_YELLOW;
+            oil_fg  = COLOR_BLACK;
+        } else {
+            oil_lbl = "OIL LOW";
+            oil_bg  = COLOR_RED;
+            oil_fg  = COLOR_WHITE;
+        }
+
+        lcdFillRect(240, 172, 80, 26, oil_bg);
+        lcdSetTextFont(&Font12);
+        uint16_t cw = lcdGetTextFont()->Width;
+        uint16_t ch = lcdGetTextFont()->Height;
+        uint16_t tw = 0;
+        for (const char *p = oil_lbl; *p; p++) tw += cw;
+        uint16_t tx = 240u + (80u - tw) / 2u;
+        uint16_t ty = 172u + (26u - ch)  / 2u;
+        lcdSetCursor(tx, ty);
+        lcdSetTextColor(oil_fg, oil_bg);
+        lcdPrintf("%s", oil_lbl);
     }
 
     /* Refresh START button label based on state */

@@ -14,6 +14,8 @@ static uint16_t compute_checksum(const Settings_t *s)
     sum += s->pressure_max_psi;
     sum += s->pressure_span_psi;
     sum += s->auto_restart_en;
+    sum += s->pressure_high_alarm_psi;
+    sum += s->pressure_high_high_psi;
     return sum;
 }
 
