@@ -29,6 +29,7 @@ extern void UI_ShowAlarms(void);
 #define BTN_SETTINGS_X 240u
 #define BTN_SETTINGS_W 80u
 
+/* Map a compressor state to its header bar background colour */
 static uint16_t state_color(SmState_t st)
 {
     switch (st) {
@@ -41,6 +42,7 @@ static uint16_t state_color(SmState_t st)
     }
 }
 
+/* Draw a single button: filled rectangle with a white outline and centred label */
 static void draw_button(uint16_t x, uint16_t w, const char *label, uint16_t bg, uint16_t fg)
 {
     lcdFillRect((int16_t)x + 2, BTN_Y + 2, (int16_t)w - 4, BTN_H - 4, bg);
@@ -57,6 +59,18 @@ static void draw_button(uint16_t x, uint16_t w, const char *label, uint16_t bg, 
     lcdPrintf("%s", label);
 }
 
+/*
+ * Redraw the main screen.
+ * Pass full_redraw=true on first entry or when returning from another screen;
+ * pass false for the ~20 Hz incremental refresh (redraws only dynamic areas).
+ *
+ * Dynamic areas refreshed every call regardless of full_redraw:
+ *   - Header bar colour + state name + PSI value
+ *   - Centre area: large PSI number or SENSOR FAULT, cut-in/cut-out setpoints
+ *   - Alarm banner (left 240px of status strip)
+ *   - Oil pressure indicator (right 80px of status strip)
+ *   - START/STOP button label and colour
+ */
 void UI_Main_Draw(bool full_redraw)
 {
     SmState_t  st  = SM_GetState();
@@ -168,6 +182,15 @@ void UI_Main_Draw(bool full_redraw)
     draw_button(BTN_START_X, BTN_START_W, btn_label, btn_bg, COLOR_WHITE);
 }
 
+/*
+ * Process a touch event on the main screen.
+ * Ignores touches outside the button bar (Y 200–239).
+ * Button regions (each 80px wide):
+ *   X   0- 79  START (in IDLE/STOPPING) or STOP (in RUNNING/STARTING)
+ *   X  80-159  RESET — sends reset request to the state machine
+ *   X 160-239  ALARMS — navigate to alarms screen
+ *   X 240-319  SETTINGS — navigate to settings screen
+ */
 void UI_Main_Touch(uint16_t x, uint16_t y)
 {
     if (y < BTN_Y || y >= BTN_Y + BTN_H) return;

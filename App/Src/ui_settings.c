@@ -43,6 +43,8 @@ static const char *row_labels[NUM_ROWS] = {
     "HiHi stop (PSI)",
 };
 
+/* Return a pointer to the s_edit field controlled by the given row index.
+   Returns NULL for an out-of-range row (used as a guard in Touch). */
 static uint16_t *row_field(uint8_t row)
 {
     switch (row) {
@@ -57,6 +59,7 @@ static uint16_t *row_field(uint8_t row)
     }
 }
 
+/* Return the minimum allowed value for the given row's field */
 static uint16_t row_min(uint8_t row)
 {
     switch (row) {
@@ -71,6 +74,7 @@ static uint16_t row_min(uint8_t row)
     }
 }
 
+/* Return the maximum allowed value for the given row's field */
 static uint16_t row_max(uint8_t row)
 {
     switch (row) {
@@ -87,6 +91,8 @@ static uint16_t row_max(uint8_t row)
 
 /* --- Drawing helpers ------------------------------------------------------- */
 
+/* Redraw a single settings row in place: label, current value, and [-]/[+] buttons.
+   Called on full draw and again after each button tap to update just that row. */
 static void draw_row(uint8_t row)
 {
     uint16_t y   = ROW_Y(row);
@@ -121,11 +127,19 @@ static void draw_row(uint8_t row)
     lcdPrintf("+");
 }
 
+/* Copy the current live settings into the local edit buffer.
+   Must be called each time the screen is entered, before UI_Settings_Draw(). */
 void UI_Settings_Enter(void)
 {
     s_edit = *Settings_Get();
 }
 
+/*
+ * Redraw the settings screen.
+ * Pass full_redraw=true on entry; the header, bottom buttons, and all rows
+ * are drawn. On false the function is a no-op — individual rows are redrawn
+ * by UI_Settings_Touch() immediately after a value changes.
+ */
 void UI_Settings_Draw(bool full_redraw)
 {
     if (full_redraw) {
@@ -155,6 +169,14 @@ void UI_Settings_Draw(bool full_redraw)
     }
 }
 
+/*
+ * Process a touch event on the settings screen.
+ *   Bottom bar (Y ≥ 200): CANCEL (X < 160) returns to main discarding edits;
+ *                          SAVE (X ≥ 160) writes to flash then returns to main.
+ *   Header (Y < 32): back-tap navigates to main, discarding edits.
+ *   Row area: tap in the [-] or [+] zone decrements/increments the field
+ *             within its min/max bounds and immediately redraws that row.
+ */
 void UI_Settings_Touch(uint16_t x, uint16_t y)
 {
     /* Bottom buttons */

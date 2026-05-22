@@ -9,19 +9,26 @@
 
 static volatile bool s_irq_flag = false;
 
-/* --- SPI helpers ---------------------------------------------------------- */
+/* ── SPI helpers ──────────────────────────────────────────────────────────── */
 
+/* Assert TP_CS (active LOW) to begin a transaction */
 static void cs_low(void)
 {
     LL_GPIO_ResetOutputPin(TP_CS_GPIO_Port, TP_CS_Pin);
 }
 
+/* De-assert TP_CS to end a transaction */
 static void cs_high(void)
 {
     LL_GPIO_SetOutputPin(TP_CS_GPIO_Port, TP_CS_Pin);
 }
 
-/* Exchange n bytes via SPI5.  tx and rx may be NULL (dummy bytes sent/discarded). */
+/*
+ * Exchange len bytes over SPI5 (polling, LL driver).
+ * tx may be NULL to send dummy bytes; rx may be NULL to discard received bytes.
+ * Follows the STM32H7 LL pattern: SetTransferSize → Enable → StartMasterTransfer
+ * → byte loop → wait EOT → clear flags → Disable.
+ */
 static void spi_xfer(const uint8_t *tx, uint8_t *rx, uint16_t len)
 {
     LL_SPI_SetTransferSize(SPI5, len);
@@ -42,26 +49,40 @@ static void spi_xfer(const uint8_t *tx, uint8_t *rx, uint16_t len)
     LL_SPI_Disable(SPI5);
 }
 
-/* Read one 12-bit ADC channel.  CS must already be asserted. */
+/*
+ * Send a 3-byte read command to the XPT2046 and return the 12-bit result.
+ * CS must already be asserted by the caller.
+ * Bit layout: rx[1][6:0] = bits 11:5, rx[2][7:3] = bits 4:0.
+ */
 static uint16_t read_channel(uint8_t cmd)
 {
     uint8_t tx[3] = { cmd, 0x00u, 0x00u };
     uint8_t rx[3];
     spi_xfer(tx, rx, 3);
-    /* result: null bit + 12-bit value + 3 trailing zeros packed in rx[1]:rx[2] */
     return (uint16_t)(((rx[1] & 0x7Fu) << 5) | (rx[2] >> 3));
 }
 
-/* --- Public API ----------------------------------------------------------- */
+/* ── Public API ───────────────────────────────────────────────────────────── */
 
+/* Initialise touch driver — de-asserts CS ready for the first transaction */
 void XPT2046_Init(void)
 {
     cs_high();
 }
 
+/*
+ * Sample the touch panel and populate touch->x, touch->y, touch->pressed.
+ *
+ * Returns false (touch->pressed = false) when TP_IRQ is HIGH (no touch).
+ * When touched: takes SAMPLES readings per axis, averages them, clamps to the
+ * calibrated range, scales to screen pixels, then applies XPT_SWAP_XY /
+ * XPT_FLIP_X / XPT_FLIP_Y orientation corrections.
+ *
+ * Call from the main loop; do not call from an ISR (SPI transfer is polled).
+ */
 bool XPT2046_Read(Touch_t *touch)
 {
-    /* TP_IRQ is active-low: low = screen touched */
+    /* TP_IRQ is active-low: high = not touched */
     if (LL_GPIO_IsInputPinSet(TP_IRQ_GPIO_Port, TP_IRQ_Pin) != 0) {
         touch->pressed = false;
         s_irq_flag = false;
@@ -80,7 +101,7 @@ bool XPT2046_Read(Touch_t *touch)
     uint16_t raw_x = (uint16_t)(sum_x / SAMPLES);
     uint16_t raw_y = (uint16_t)(sum_y / SAMPLES);
 
-    /* Clamp to calibrated range */
+    /* Clamp to calibrated range before scaling */
     if (raw_x < XPT_CAL_X_MIN) raw_x = XPT_CAL_X_MIN;
     if (raw_x > XPT_CAL_X_MAX) raw_x = XPT_CAL_X_MAX;
     if (raw_y < XPT_CAL_Y_MIN) raw_y = XPT_CAL_Y_MIN;
@@ -109,6 +130,11 @@ bool XPT2046_Read(Touch_t *touch)
     return true;
 }
 
+/*
+ * Called from EXTI3_IRQHandler — falling edge on TP_IRQ signals a touch.
+ * Sets a flag only; the actual SPI read happens in the main loop via
+ * XPT2046_Read() to avoid blocking inside an ISR.
+ */
 void XPT2046_IRQHandler(void)
 {
     s_irq_flag = true;

@@ -11,6 +11,13 @@ extern void UI_ShowMain(void);
 #define ROW_H  26u    /* 6 rows × 26 = 156; HDR_H + 156 = 188 = BTN_Y */
 #define BTN_Y  188u
 
+/*
+ * Draw one alarm row at vertical position y.
+ * Colour reflects the alarm state:
+ *   inactive             → black background, grey text
+ *   active + unacked     → maroon background, white text with "! " prefix
+ *   active + acknowledged → dark grey background, white text
+ */
 static void draw_alarm_row(uint8_t bit, uint16_t y, const char *label)
 {
     bool active = (Alarms_Get() & bit) != 0;
@@ -29,6 +36,12 @@ static void draw_alarm_row(uint8_t bit, uint16_t y, const char *label)
     }
 }
 
+/*
+ * Redraw the alarms screen.
+ * Pass full_redraw=true on entry to paint the header and ACK ALL button.
+ * All six alarm rows are refreshed on every call so their colour stays
+ * current without needing a separate incremental-refresh path.
+ */
 void UI_Alarms_Draw(bool full_redraw)
 {
     if (full_redraw) {
@@ -57,6 +70,12 @@ void UI_Alarms_Draw(bool full_redraw)
     draw_alarm_row(ALARM_ESTOP,          HDR_H + ROW_H * 5, "Emergency stop");
 }
 
+/*
+ * Process a touch event on the alarms screen.
+ * Header tap (Y < 32): navigate back to main screen.
+ * Bottom bar tap (Y ≥ 188): acknowledge all active alarms.
+ * Taps in the row area between header and bottom bar are ignored.
+ */
 void UI_Alarms_Touch(uint16_t x, uint16_t y)
 {
     (void)x;
