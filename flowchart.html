@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>F7 Compressor — State Machine</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  padding: 32px 40px;
+  max-width: 1150px;
+  margin: 0 auto;
+}
+
+h1 {
+  font-size: 1.55rem;
+  font-weight: 600;
+  color: #e6edf3;
+  border-bottom: 1px solid #21262d;
+  padding-bottom: 12px;
+  margin-bottom: 6px;
+}
+
+.subtitle {
+  color: #6e7681;
+  font-size: 0.875rem;
+  margin-bottom: 28px;
+}
+
+/* ── E-stop callout ─────────────────────────────────────────── */
+.estop-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: #1c0d22;
+  border: 1px solid #6e3390;
+  border-left: 4px solid #cc44ff;
+  border-radius: 6px;
+  padding: 13px 16px;
+  margin-bottom: 24px;
+  font-size: 0.875rem;
+  line-height: 1.6;
+  color: #d2a8ff;
+}
+
+.estop-banner .icon { font-size: 1.2rem; flex-shrink: 0; margin-top: 1px; }
+.estop-banner strong { color: #ff66ff; }
+
+/* ── Diagram container ──────────────────────────────────────── */
+.chart-card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  padding: 28px 20px;
+  margin-bottom: 28px;
+  overflow-x: auto;
+}
+
+.mermaid { display: flex; justify-content: center; }
+
+/* ── Info grid ──────────────────────────────────────────────── */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 720px) { .grid { grid-template-columns: 1fr; } }
+
+.card {
+  background: #161b22;
+  border: 1px solid #21262d;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.card-full {
+  grid-column: 1 / -1;
+}
+
+.card-head {
+  background: #21262d;
+  padding: 9px 14px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #8b949e;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* ── Tables ─────────────────────────────────────────────────── */
+table { width: 100%; border-collapse: collapse; font-size: 0.835rem; }
+
+th {
+  background: #1c2128;
+  color: #6e7681;
+  padding: 7px 13px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+td {
+  padding: 8px 13px;
+  border-bottom: 1px solid #21262d;
+  vertical-align: top;
+  line-height: 1.5;
+}
+
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #1c2128; }
+
+/* ── State chips ─────────────────────────────────────────────── */
+.chip {
+  display: inline-block;
+  padding: 2px 9px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  white-space: nowrap;
+}
+.s-idle     { background: #1c1c1c; color: #999; border: 1px solid #444; }
+.s-starting { background: #3a2e00; color: #ffd700; border: 1px solid #665500; }
+.s-running  { background: #002800; color: #00e000; border: 1px solid #005500; }
+.s-stopping { background: #002a2a; color: #00d0d0; border: 1px solid #005555; }
+.s-fault    { background: #280000; color: #ff4444; border: 1px solid #660000; }
+.s-estop    { background: #280028; color: #ff44ff; border: 1px solid #660066; }
+
+/* ── Alarm badges ────────────────────────────────────────────── */
+.alarm {
+  display: inline-block;
+  background: #2d0a0a;
+  color: #ff8888;
+  border: 1px solid #660000;
+  border-radius: 3px;
+  padding: 1px 7px;
+  font-size: 0.75rem;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+  white-space: nowrap;
+}
+
+code {
+  background: #21262d;
+  color: #79c0ff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.83rem;
+  font-family: 'Consolas', 'Cascadia Code', monospace;
+}
+
+.relay-on  { color: #4ac26b; font-weight: 600; }
+.relay-off { color: #6e7681; }
+
+.footer {
+  color: #484f58;
+  font-size: 0.78rem;
+  text-align: center;
+  padding: 18px 0 0;
+  border-top: 1px solid #21262d;
+  margin-top: 8px;
+}
+</style>
+</head>
+<body>
+
+<h1>F7 Compressor — State Machine</h1>
+<p class="subtitle">STM32H723ZG bare-metal &nbsp;·&nbsp; <code>App/Src/compressor_sm.c</code> &nbsp;·&nbsp; <code>SM_Update()</code> called every main-loop iteration</p>
+
+<div class="estop-banner">
+  <span class="icon">⚡</span>
+  <div>
+    <strong>E-Stop override (PC2, NC contact):</strong> pin going HIGH transitions
+    <em>any state</em> immediately to <strong>E-STOP</strong>, de-energising both relays
+    without dead-time. Dashed arrows in the diagram below represent this interrupt.
+    Reset requires the NC contact to re-close <em>and</em> the operator to press RESET.
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════ DIAGRAM ═══════════════════════════ -->
+<div class="chart-card">
+<div class="mermaid">
+%%{init: {
+  "theme": "base",
+  "themeVariables": {
+    "background":         "#161b22",
+    "primaryColor":       "#21262d",
+    "primaryTextColor":   "#c9d1d9",
+    "primaryBorderColor": "#444c56",
+    "lineColor":          "#6e7681",
+    "edgeLabelBackground":"#161b22",
+    "clusterBkg":         "#1c2128",
+    "clusterBorder":      "#30363d",
+    "fontFamily":         "Consolas, monospace",
+    "fontSize":           "13px"
+  }
+}}%%
+flowchart TD
+
+    classDef idle     fill:#1a1a1a,stroke:#666666,color:#aaaaaa,rx:6
+    classDef starting fill:#3a2e00,stroke:#aa8800,color:#ffd700,rx:6
+    classDef running  fill:#002800,stroke:#007700,color:#00dd00,rx:6
+    classDef stopping fill:#002a2a,stroke:#006666,color:#00cccc,rx:6
+    classDef fault    fill:#280000,stroke:#880000,color:#ff5555,rx:6
+    classDef estop    fill:#280028,stroke:#880088,color:#ff55ff,rx:6
+
+    IDLE(["IDLE\nrelays: both OFF"]):::idle
+    START(["STARTING\nSTART relay ON"]):::starting
+    RUN(["RUNNING\nSTART relay ON"]):::running
+    STOP(["STOPPING\nSTOP relay ON"]):::stopping
+    FAULT(["FAULT\nSTOP relay ON\nmanual reset required"]):::fault
+    ES(["E-STOP\nboth relays OFF\nmanual reset required"]):::estop
+
+    IDLE  -->|"operator presses START"| START
+    START -->|"oil switch closes"| RUN
+    START -->|"oil timeout  —  oil switch never closed\nalso sets LOW_PRESSURE alarm if psi < min"| FAULT
+
+    RUN   -->|"oil pressure lost"| FAULT
+    RUN   -->|"psi ≥ high-high threshold\n→ FAULT + HiHi alarm"| FAULT
+    RUN   -->|"psi ≥ high alarm threshold\n→ HIGH_PRESSURE alarm"| STOP
+    RUN   -->|"psi ≥ cut-out  (normal cycle)"| STOP
+
+    STOP  -->|"psi ≥ high-high  (unloader / check-valve failure)\n→ FAULT + HiHi alarm"| FAULT
+    STOP  -->|"psi ≤ cut-in  ·  auto restart ON"| START
+    STOP  -->|"psi ≤ cut-in  ·  auto restart OFF"| IDLE
+
+    FAULT -->|"RESET pressed\n(clears all pressure alarms)"| IDLE
+    ES    -->|"NC contact re-closes  +  RESET pressed"| IDLE
+
+    IDLE  -.->|"⚡"| ES
+    START -.->|"⚡"| ES
+    RUN   -.->|"⚡"| ES
+    STOP  -.->|"⚡"| ES
+    FAULT -.->|"⚡"| ES
+</div>
+</div>
+
+<!-- ═══════════════════════════════════ INFO GRID ═════════════════════════ -->
+<div class="grid">
+
+  <!-- States -->
+  <div class="card">
+    <div class="card-head">States &amp; Relay Actions</div>
+    <table>
+      <tr><th>State</th><th>START relay PG4</th><th>STOP relay PG5</th><th>Meaning</th></tr>
+      <tr>
+        <td><span class="chip s-idle">IDLE</span></td>
+        <td class="relay-off">OFF</td>
+        <td class="relay-off">OFF</td>
+        <td>Motor stopped. Waiting for operator.</td>
+      </tr>
+      <tr>
+        <td><span class="chip s-starting">STARTING</span></td>
+        <td class="relay-on">ON</td>
+        <td class="relay-off">OFF</td>
+        <td>Motor energised. Oil switch must close within <code>oil_pressure_delay_s</code>.</td>
+      </tr>
+      <tr>
+        <td><span class="chip s-running">RUNNING</span></td>
+        <td class="relay-on">ON</td>
+        <td class="relay-off">OFF</td>
+        <td>Normal operation. Monitors oil &amp; pressure thresholds.</td>
+      </tr>
+      <tr>
+        <td><span class="chip s-stopping">STOPPING</span></td>
+        <td class="relay-off">OFF</td>
+        <td class="relay-on">ON</td>
+        <td>Motor braking (50 ms dead-time before STOP asserts). Waiting for pressure to fall to cut-in.</td>
+      </tr>
+      <tr>
+        <td><span class="chip s-fault">FAULT</span></td>
+        <td class="relay-off">OFF</td>
+        <td class="relay-on">ON</td>
+        <td>Latched fault. Operator must acknowledge alarm and press RESET.</td>
+      </tr>
+      <tr>
+        <td><span class="chip s-estop">E-STOP</span></td>
+        <td class="relay-off">OFF</td>
+        <td class="relay-off">OFF</td>
+        <td>Both relays cut immediately (no dead-time). NC contact must physically re-close before reset allowed.</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Pressure thresholds -->
+  <div class="card">
+    <div class="card-head">Pressure Thresholds (configurable in Settings)</div>
+    <table>
+      <tr><th>Setting</th><th>Default</th><th>Meaning</th></tr>
+      <tr>
+        <td><code>pressure_min_psi</code></td>
+        <td>80 PSI</td>
+        <td>Low pressure alarm: set if psi is still below this when the oil delay expires</td>
+      </tr>
+      <tr>
+        <td><code>pressure_max_psi</code></td>
+        <td>100 PSI</td>
+        <td>Cut-out: normal stop when psi reaches this (no alarm)</td>
+      </tr>
+      <tr>
+        <td><code>pressure_span_psi</code></td>
+        <td>10 PSI</td>
+        <td>Hysteresis band — cut-in = max − span (90 PSI default)</td>
+      </tr>
+      <tr>
+        <td><code>pressure_high_alarm_psi</code></td>
+        <td>110 PSI</td>
+        <td>Controlled stop + <span class="alarm">HIGH_PRESSURE</span> alarm (auto-clears when psi drops)</td>
+      </tr>
+      <tr>
+        <td><code>pressure_high_high_psi</code></td>
+        <td>120 PSI</td>
+        <td>Emergency shutdown → FAULT + <span class="alarm">HIGH_HIGH_PRES</span> (RUNNING or STOPPING)</td>
+      </tr>
+      <tr>
+        <td><code>oil_pressure_delay_s</code></td>
+        <td>5 s</td>
+        <td>Grace period for oil pressure to build after motor start</td>
+      </tr>
+      <tr>
+        <td><code>auto_restart_en</code></td>
+        <td>ON</td>
+        <td>STOPPING→STARTING (duty cycle) vs STOPPING→IDLE (manual restart)</td>
+      </tr>
+    </table>
+  </div>
+
+  <!-- Alarms -->
+  <div class="card card-full">
+    <div class="card-head">Alarm Bitmask</div>
+    <table>
+      <tr><th>Alarm</th><th>Bit</th><th>Set when</th><th>Cleared by</th></tr>
+      <tr>
+        <td><span class="alarm">ALARM_OIL_TIMEOUT</span></td>
+        <td><code>0x01</code></td>
+        <td>Oil switch didn't close within <code>oil_pressure_delay_s</code></td>
+        <td>FAULT reset or enter IDLE</td>
+      </tr>
+      <tr>
+        <td><span class="alarm">ALARM_PRESSURE_FAULT</span></td>
+        <td><code>0x02</code></td>
+        <td>ADC reading outside 4–20 mA window (wiring / sensor fault)</td>
+        <td>FAULT reset or enter IDLE</td>
+      </tr>
+      <tr>
+        <td><span class="alarm">ALARM_ESTOP</span></td>
+        <td><code>0x04</code></td>
+        <td>E-stop NC contact opened (PC2 HIGH)</td>
+        <td>NC contact re-closes + RESET</td>
+      </tr>
+      <tr>
+        <td><span class="alarm">ALARM_LOW_PRESSURE</span></td>
+        <td><code>0x08</code></td>
+        <td>Discharge psi &lt; <code>pressure_min_psi</code> when oil delay expires</td>
+        <td>FAULT reset or enter IDLE</td>
+      </tr>
+      <tr>
+        <td><span class="alarm">ALARM_HIGH_PRESSURE</span></td>
+        <td><code>0x10</code></td>
+        <td>Discharge psi ≥ <code>pressure_high_alarm_psi</code> while RUNNING</td>
+        <td>Auto-cleared when psi drops back below high alarm threshold</td>
+      </tr>
+      <tr>
+        <td><span class="alarm">ALARM_HIGH_HIGH_PRES</span></td>
+        <td><code>0x20</code></td>
+        <td>Discharge psi ≥ <code>pressure_high_high_psi</code> (RUNNING or STOPPING)</td>
+        <td>FAULT reset or enter IDLE</td>
+      </tr>
+    </table>
+  </div>
+
+</div><!-- /grid -->
+
+<div class="footer">
+  F7Compressor firmware &nbsp;·&nbsp; STM32H723ZGTx &nbsp;·&nbsp;
+  Relay dead-time: 50 ms &nbsp;·&nbsp; ADC sampled at ~10 Hz &nbsp;·&nbsp; SM updated every main-loop tick
+</div>
+
+<script>
+  mermaid.initialize({ startOnLoad: true });
+</script>
+
+</body>
+</html>

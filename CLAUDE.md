@@ -47,7 +47,7 @@ make clean        # remove build directory
 
 ## Current Project Status
 
-All bring-up steps are **implemented and compile cleanly** (~30.7KB flash). The firmware has not yet been flashed to hardware for validation.
+All bring-up steps are **implemented and compile cleanly** (~30.0KB flash). The firmware has not yet been flashed to hardware for validation.
 
 **Completed:**
 - Makefile USER CODE sections present; all BSP and App sources compile.
@@ -56,12 +56,15 @@ All bring-up steps are **implemented and compile cleanly** (~30.7KB flash). The 
 - Full App layer: compressor state machine, alarm management, settings (flash storage), three UI screens.
 - `Core/Src/main.c` and `Core/Src/stm32h7xx_it.c` USER CODE blocks filled.
 - High/high-high pressure alarms + shutdowns, low pressure startup fault, cut-in/cut-out setpoint display, oil pressure status indicator.
+- `App/Src/compressor_sm.c` fully commented — state diagram in file header, entry-action rationale, per-state transition logic, ISR/main-loop calling context.
+- `flowchart.html` — interactive state machine flowchart (Mermaid, colour-coded, with threshold and alarm reference tables).
+- `wiring_diagram.html` — full SVG wiring diagram: NUCLEO↔LCD, switches, pressure sensor, relay module, motor starter, J-Link; includes pin reference tables.
 
 **Pending (first-time hardware validation):**
 - Flash and confirm display shows IDLE screen (FMC + TIM3 backlight + lcdInit).
 - Verify PSI reading (apply known voltage to PA3).
 - Tune touch calibration constants in `BSP/Inc/xpt2046_spi.h` (`XPT_CAL_*`, `XPT_SWAP_XY`, `XPT_FLIP_*`).
-- Validate relay dead-time with oscilloscope on PG4/PG5.
+- Validate relay output on PG4 with oscilloscope (PG5 unused).
 - End-to-end state machine test with real I/O.
 - Settings save/load across power cycle.
 
@@ -165,11 +168,10 @@ FMC address map: `0x60000000` = command (A0=0), `0x60000002` = data (A0=1). Only
 - Calibration constants in `BSP/Inc/pressure_adc.h`: `PADC_ADC_4MA=744`, `PADC_ADC_20MA=3724`, `PADC_SENSOR_RANGE_PSI=200`.
 - `PADC_IsFault()` returns true if reading is outside a 5% margin of the 4-20mA window.
 
-#### `relay` — START/STOP relay outputs
-- PG4 = START relay, PG5 = STOP relay. Both init LOW.
-- `Relay_Request(cmd)` schedules a state change; de-asserts current relay, enters dead-time.
-- `Relay_Update()` must be called every main-loop iteration to apply the transition after 50ms.
-- `RELAY_CMD_IDLE` forces both LOW immediately (no dead-time).
+#### `relay` — Single relay output
+- PG4 = RUN relay (energised = compressor runs, de-energised = compressor stops). PG5 unused.
+- `Relay_Request(RELAY_CMD_START)` energises PG4; any other command de-energises it.
+- `Relay_Update()` is a no-op retained for API compatibility — no dead-time required.
 
 #### `digital_in` — OIL_SW and E-STOP inputs
 - PC0 (OIL_SW): NC contact to GND, pull-up. LOW = pressure OK, HIGH = fault. Both EXTI edges.
@@ -268,13 +270,13 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 
 ### Compressor State Machine
 
-**Relay rule**: never assert both relays simultaneously. De-assert one, wait 50ms dead-time, then assert the other.
+**Relay rule**: PG4 HIGH = compressor runs; PG4 LOW = compressor stops. PG5 is unused.
 
-| State | PG4 START relay | PG5 STOP relay |
-|---|---|---|
-| IDLE / STOPPED | LOW | LOW |
-| STARTING / RUNNING | HIGH | LOW |
-| STOPPING / FAULT / E-STOP | LOW | HIGH |
+| State | PG4 RUN relay |
+|---|---|
+| IDLE / STOPPED | LOW |
+| STARTING / RUNNING | HIGH |
+| STOPPING / FAULT / E-STOP | LOW |
 
 ## Hardware Summary
 
@@ -294,8 +296,8 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 | TP_IRQ | PG3 | EXTI3 falling edge, pull-up; polled by pin state in XPT2046_Read |
 | Oil pressure switch | PC0 | EXTI0, both edges, pull-up, NC contact |
 | Emergency stop | PC2 | EXTI2, falling edge, pull-up, NC contact |
-| START relay | PG4 | Output, init LOW |
-| STOP relay | PG5 | Output, init LOW |
+| RUN relay | PG4 | Output, init LOW; HIGH = compressor runs |
+| (unused) | PG5 | Output, init LOW |
 | Pressure 4-20mA | PA3 | ADC1_INP15; 150Ω shunt → 0.6–3.0V |
 
 150Ω resistor between PA3 and GND (4mA→0.6V, 20mA→3.0V). Add 100nF decoupling cap.
@@ -305,11 +307,20 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 - FMC: **HAL** driver (no LL NOR/PSRAM option)
 - SPI5, ADC1, TIM3, GPIO, RCC, CORTEX_M7: **LL** driver
 - FMC address width: **1 bit** (A0 only, PF0); do not use A18
+  - Note: generated `fmc.c` configures PD13 as `FMC_A18` — this is harmless; all LCD accesses use addresses 0x60000000/0x60000002 which keep A18=0
 - USART3: **disabled** (frees PD8/PD9 for FMC_D13/D14)
 - FMC timing at 240MHz AHB3: Address setup=1, Data setup=15, Bus turnaround=0, Mode A
 - NVIC Priority Group: **4** (4 bits preemption, 0 sub-priority)
 - ADC: polled in main loop; NVIC enabled by CubeMX but no ADC interrupt sources are enabled — ADC_IRQHandler is empty and harmless
 - TIM3: prescaler=239 (1MHz at 240MHz PCLK1), ARR=999 (1kHz), CCR1=750 (75%)
+
+## Reference Documents (project root)
+
+| File | Contents |
+|---|---|
+| `ui_mockup.html` | Interactive 2× scale UI mockup of all three screens with live controls |
+| `flowchart.html` | State machine flowchart — Mermaid diagram, threshold table, alarm table |
+| `wiring_diagram.html` | Full SVG wiring diagram — all pin connections, relay module, power, J-Link |
 
 ## Bring-up Sequence
 
