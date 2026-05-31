@@ -10,58 +10,51 @@ STM32H723ZG firmware for controlling a 220VAC air compressor with a Waveshare 3.
 
 ```bash
 make -j4          # build (outputs build/F7Compressor.{elf,hex,bin})
-make flash        # build then flash via OpenOCD + ST-Link
+make flash        # build then flash+verify+reset via OpenOCD + ST-Link
 make clean        # remove build directory
 ```
 
-`make flash` requires OpenOCD on PATH. Alternatively flash manually with STM32CubeProgrammer using `build/F7Compressor.hex`.
+`make flash` uses `openocd` (must be on `PATH`) with ST-Link SWD. Override if needed:
+
+```bash
+make flash OPENOCD=/usr/local/bin/openocd
+make flash OPENOCD_CFG="-f interface/stlink.cfg -f target/stm32h7x.cfg"
+```
 
 **Toolchain**: `arm-none-eabi-gcc` must be on `PATH`. Flags: `-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -Og -g -gdwarf-2`.
 
 ## VS Code Debug
 
-**Recommended**: SEGGER J-Link EDU Mini + Cortex-Debug extension + J-Link Software Pack (segger.com).
-
-- Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector)
-- Remove CN2 SWD jumpers to isolate on-board ST-Link
-- `STM32H723.svd` is in the project root
-
-`.vscode/launch.json` currently points to a different project (`H7Servo`). Update before use:
+`.vscode/launch.json` is configured for **OpenOCD + ST-Link** with `${workspaceRoot}`-relative paths:
 
 ```json
 {
-    "name": "J-Link Debug",
+    "name": "Debug with OpenOCD",
     "type": "cortex-debug",
     "request": "launch",
-    "servertype": "jlink",
-    "device": "STM32H723ZG",
-    "interface": "swd",
+    "servertype": "openocd",
+    "configFiles": [
+        "/usr/share/openocd/scripts/interface/stlink.cfg",
+        "/usr/share/openocd/scripts/target/stm32h7x.cfg"
+    ],
     "executable": "${workspaceRoot}/build/F7Compressor.elf",
-    "svdFile": "${workspaceRoot}/STM32H723.svd"
+    "svdFile": "${workspaceRoot}/STM32H723.svd",
+    "runToEntryPoint": "main"
 }
 ```
 
+Alternatively, use a **SEGGER J-Link EDU Mini** with `servertype: jlink` and `device: STM32H723ZG`. Connect to CN4 (20-pin ARM debug connector); remove CN2 SWD jumpers to isolate on-board ST-Link. J-Link RTT then provides zero-overhead debug output.
+
 **Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
-- J-Link RTT (preferred with J-Link hardware — no UART, no pins, zero overhead)
-- USART1 (PA9=TX, PA10=RX) + USB-serial adapter (FTDI preferred — native macOS support, shows as `/dev/tty.usbserial-*`)
+- J-Link RTT (preferred — no UART, no pins)
+- USART1 (PA9=TX, PA10=RX) + USB-serial adapter (shows as `/dev/ttyUSB*` on Linux)
 
 ## Current Project Status
 
-All bring-up steps are **implemented and compile cleanly** (~30.0KB flash). The firmware has not yet been flashed to hardware for validation.
+All firmware is **implemented and compiles cleanly** (~30KB flash). First flash to hardware confirmed successful via OpenOCD + ST-Link SWD.
 
-**Completed:**
-- Makefile USER CODE sections present; all BSP and App sources compile.
-- `BSP/Inc/ili9341.h` modifications applied (`LCD_BASE1 = 0x60000002`, LL GPIO backlight macros).
-- Full BSP layer: display, touch (XPT2046), pressure ADC, relay control, digital inputs.
-- Full App layer: compressor state machine, alarm management, settings (flash storage), three UI screens.
-- `Core/Src/main.c` and `Core/Src/stm32h7xx_it.c` USER CODE blocks filled.
-- High/high-high pressure alarms + shutdowns, low pressure startup fault, cut-in/cut-out setpoint display, oil pressure status indicator.
-- `App/Src/compressor_sm.c` fully commented — state diagram in file header, entry-action rationale, per-state transition logic, ISR/main-loop calling context.
-- `flowchart.html` — interactive state machine flowchart (Mermaid, colour-coded, with threshold and alarm reference tables).
-- `wiring_diagram.html` — full SVG wiring diagram: NUCLEO↔LCD, switches, pressure sensor, relay module, motor starter, J-Link; includes pin reference tables.
-
-**Pending (first-time hardware validation):**
-- Flash and confirm display shows IDLE screen (FMC + TIM3 backlight + lcdInit).
+**Pending (hardware validation):**
+- Confirm display shows IDLE screen (FMC + TIM3 backlight + lcdInit). Heartbeat LED (LD1, PB0) blinks at 1Hz to confirm firmware is running.
 - Verify PSI reading (apply known voltage to PA3).
 - Tune touch calibration constants in `BSP/Inc/xpt2046_spi.h` (`XPT_CAL_*`, `XPT_SWAP_XY`, `XPT_FLIP_*`).
 - Validate relay output on PG4 with oscilloscope (PG5 unused).
@@ -74,6 +67,7 @@ CubeMX preserves `/* USER CODE */` blocks on regeneration. After every regenerat
 
 ```makefile
 # USER CODE BEGIN C_SOURCES
+C_SOURCES += \
 BSP/Src/ili9341.c \
 BSP/Src/font8.c \
 BSP/Src/font12.c \
@@ -98,6 +92,8 @@ App/Src/ui_alarms.c
 # USER CODE END C_INCLUDES
 ```
 
+Note: `BSP/Src/example.c` is NOT compiled — it is the original library example file, kept for reference only.
+
 ## Architecture
 
 ### Layering
@@ -116,7 +112,8 @@ The main loop polls ADC (~10Hz) and touch panel every iteration, and redraws the
 Init:  TIM3 PWM start → lcdInit → XPT2046_Init → PADC_Init → Relay_Init → DigIn_Init
        → Alarms_Init → Settings_Init → SM_Init
 
-Loop:  every 100ms: PADC_Sample + alarm update
+Loop:  every 500ms: toggle LD1 (PB0) heartbeat LED
+       every 100ms: PADC_Sample + alarm update
        every iter:  Relay_Update, SM_SetOilSwitch/EStop, SM_Update
        every iter:  XPT2046_Read → UI touch dispatch
        every 50ms:  UI draw (active screen)
@@ -281,8 +278,9 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 ## Hardware Summary
 
 - **MCU**: STM32H723ZGTx on NUCLEO-H723ZG, 480MHz (HSE 8MHz → PLL1, VOS0)
-- **Power**: External 5VDC on CN9 pin 6 (E5V); JP3 jumper in E5V position (1-2)
+- **Power**: USB via CN1 (ST-Link connector) powers the board by default. JP3 is a 2-pin MCU_RST jumper (keep installed). For external 5V supply, use CN9 pin 6.
 - **Debug**: SWD only — USART3 is consumed by FMC (PD8/PD9 = FMC_D13/D14), no ST-Link VCP
+- **Heartbeat LED**: LD1 (Green, PB0) toggled at 1Hz in the main loop — confirms firmware is running after first flash.
 
 ### Key Pin Assignments
 
@@ -299,6 +297,7 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 | RUN relay | PG4 | Output, init LOW; HIGH = compressor runs |
 | (unused) | PG5 | Output, init LOW |
 | Pressure 4-20mA | PA3 | ADC1_INP15; 150Ω shunt → 0.6–3.0V |
+| Heartbeat LED | PB0 | LD1 Green (NUCLEO built-in); toggled 1Hz in firmware |
 
 150Ω resistor between PA3 and GND (4mA→0.6V, 20mA→3.0V). Add 100nF decoupling cap.
 
@@ -314,23 +313,16 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 - ADC: polled in main loop; NVIC enabled by CubeMX but no ADC interrupt sources are enabled — ADC_IRQHandler is empty and harmless
 - TIM3: prescaler=239 (1MHz at 240MHz PCLK1), ARR=999 (1kHz), CCR1=750 (75%)
 
-## Reference Documents (project root)
+## Reference Documents
 
 | File | Contents |
 |---|---|
 | `ui_mockup.html` | Interactive 2× scale UI mockup of all three screens with live controls |
 | `flowchart.html` | State machine flowchart — Mermaid diagram, threshold table, alarm table |
 | `wiring_diagram.html` | Full SVG wiring diagram — all pin connections, relay module, power, J-Link |
-
-## Bring-up Sequence
-
-1. ✅ Add Makefile USER CODE blocks → verify compile
-2. ✅ Apply `ili9341.h` modifications; start TIM3 backlight PWM; `lcdInit()` + landscape
-3. ✅ Text rendering with fonts (library included)
-4. ✅ XPT2046 touch driver — calibration constants need tuning on hardware
-5. ✅ ADC pressure → PSI conversion + fault detection
-6. ✅ Relay outputs + oil switch/E-Stop inputs with ISR handlers
-7. ✅ Compressor state machine wired to real I/O
-8. ✅ Flash settings read/write (sector 7, D-cache flushed)
-9. ✅ Full UI integration (main, settings, alarms screens)
-10. ✅ High/high-high pressure alarms, low pressure startup fault, cut-in/cut-out display, oil status indicator
+| `Documentation/3.2inch-320-240-Touch-LCD-SCH-2.pdf` | LCD module schematic |
+| `Documentation/XPT2046-EN.pdf` | Touch controller datasheet |
+| `Documentation/ILI9325_datasheet.pdf` | Display controller datasheet |
+| `Documentation/NUCLEO-H723ZG-e01_schematic.pdf` | NUCLEO board schematic |
+| `Documentation/STM32H723zg Datasheet.pdf` | MCU datasheet |
+| `Documentation/STM32 H723 Reference Manaul.pdf` | MCU reference manual |

@@ -135,6 +135,14 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  /* Heartbeat LED: LD1 Green (PB0) — init early so it blinks even if later init hangs */
+  LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOB);
+  LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_0, LL_GPIO_MODE_OUTPUT);
+  LL_GPIO_SetPinOutputType(GPIOB, LL_GPIO_PIN_0, LL_GPIO_OUTPUT_PUSHPULL);
+  LL_GPIO_SetPinSpeed(GPIOB, LL_GPIO_PIN_0, LL_GPIO_SPEED_FREQ_LOW);
+  LL_GPIO_SetPinPull(GPIOB, LL_GPIO_PIN_0, LL_GPIO_PULL_NO);
+  LL_GPIO_ResetOutputPin(GPIOB, LL_GPIO_PIN_0);
+
   /* --- BSP init --- */
   /* Backlight: start TIM3 PWM on PC6 (AF2, already configured by MX_TIM3_Init) */
   LL_TIM_EnableCounter(TIM3);
@@ -175,12 +183,19 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   uint32_t adc_tick = 0;
   uint32_t ui_tick  = 0;
+  uint32_t led_tick = 0;
 
   while (1)
   {
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
+
+    /* Heartbeat: toggle LD1 green (PB0) at 1 Hz */
+    if (HAL_GetTick() - led_tick >= 500u) {
+        led_tick = HAL_GetTick();
+        LL_GPIO_TogglePin(GPIOB, LL_GPIO_PIN_0);
+    }
 
     /* ADC at ~10 Hz */
     if (HAL_GetTick() - adc_tick >= 100u) {

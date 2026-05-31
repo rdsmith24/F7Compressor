@@ -6,14 +6,14 @@
     "configurations": [
         {
             "cwd": "${workspaceRoot}",
-            "executable": "/Users/rdsmith/LocalSourceCode/F7Compressor/build/F7Compressor.elf",
+            "executable": "${workspaceRoot}/build/F7Compressor.elf",
             "name": "Debug with OpenOCD",
             "request": "launch",
             "type": "cortex-debug",
             "servertype": "openocd",
             "configFiles": ["/usr/local/share/openocd/scripts/interface/stlink.cfg",
         "/usr/local/share/openocd/scripts/target/stm32h7x.cfg"],
-        "svdFile": "/Users/rdsmith/LocalSourceCode/F7Compressor/STM32H723.svd",
+        "svdFile": "${workspaceRoot}/STM32H723.svd",
         "liveWatch": {
         "enabled": true,
         "refreshRate": 10  // in milliseconds (e.g., 250 ms = 4 Hz)
@@ -21,7 +21,7 @@
             "searchDir": [],
             "runToEntryPoint": "main",
             "preLaunchTask": "Build Flash",
-            "showDevDebugOutput": "vscode"
+            "showDevDebugOutput": "raw"
         }
     ]
 }

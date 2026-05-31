@@ -241,11 +241,14 @@ clean:
 	-rm -fR $(BUILD_DIR)
 
 ####################################
-# openocd
-#######################################
+# OpenOCD flash
+####################################
+OPENOCD        ?= openocd
+OPENOCD_CFG    ?= -f interface/stlink.cfg -f target/stm32h7x.cfg
+
 flash: all
-	openocd -f /usr/local/share/openocd/scripts/interface/stlink.cfg -f /usr/local/share/openocd/scripts/target/stm32h7x.cfg \
-	-c "adapter speed 500; reset_config none separate; init; program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
+	$(OPENOCD) $(OPENOCD_CFG) \
+	    -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
 #######################################
 # dependencies
 #######################################
