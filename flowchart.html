@@ -179,8 +179,8 @@ code {
   <span class="icon">⚡</span>
   <div>
     <strong>E-Stop override (PC2, NC contact):</strong> pin going HIGH transitions
-    <em>any state</em> immediately to <strong>E-STOP</strong>, de-energising both relays
-    without dead-time. Dashed arrows in the diagram below represent this interrupt.
+    <em>any state</em> immediately to <strong>E-STOP</strong>, de-energising the RUN relay
+    immediately. Dashed arrows in the diagram below represent this interrupt.
     Reset requires the NC contact to re-close <em>and</em> the operator to press RESET.
   </div>
 </div>
@@ -212,12 +212,12 @@ flowchart TD
     classDef fault    fill:#280000,stroke:#880000,color:#ff5555,rx:6
     classDef estop    fill:#280028,stroke:#880088,color:#ff55ff,rx:6
 
-    IDLE(["IDLE\nrelays: both OFF"]):::idle
-    START(["STARTING\nSTART relay ON"]):::starting
-    RUN(["RUNNING\nSTART relay ON"]):::running
-    STOP(["STOPPING\nSTOP relay ON"]):::stopping
-    FAULT(["FAULT\nSTOP relay ON\nmanual reset required"]):::fault
-    ES(["E-STOP\nboth relays OFF\nmanual reset required"]):::estop
+    IDLE(["IDLE\nRUN relay: OFF"]):::idle
+    START(["STARTING\nRUN relay: ON"]):::starting
+    RUN(["RUNNING\nRUN relay: ON"]):::running
+    STOP(["STOPPING\nRUN relay: OFF"]):::stopping
+    FAULT(["FAULT\nRUN relay: OFF\nmanual reset required"]):::fault
+    ES(["E-STOP\nRUN relay: OFF\nmanual reset required"]):::estop
 
     IDLE  -->|"operator presses START"| START
     START -->|"oil switch closes"| RUN
@@ -250,42 +250,36 @@ flowchart TD
   <div class="card">
     <div class="card-head">States &amp; Relay Actions</div>
     <table>
-      <tr><th>State</th><th>START relay PG4</th><th>STOP relay PG5</th><th>Meaning</th></tr>
+      <tr><th>State</th><th>RUN relay PG4</th><th>Meaning</th></tr>
       <tr>
         <td><span class="chip s-idle">IDLE</span></td>
-        <td class="relay-off">OFF</td>
         <td class="relay-off">OFF</td>
         <td>Motor stopped. Waiting for operator.</td>
       </tr>
       <tr>
         <td><span class="chip s-starting">STARTING</span></td>
         <td class="relay-on">ON</td>
-        <td class="relay-off">OFF</td>
         <td>Motor energised. Oil switch must close within <code>oil_pressure_delay_s</code>.</td>
       </tr>
       <tr>
         <td><span class="chip s-running">RUNNING</span></td>
         <td class="relay-on">ON</td>
-        <td class="relay-off">OFF</td>
         <td>Normal operation. Monitors oil &amp; pressure thresholds.</td>
       </tr>
       <tr>
         <td><span class="chip s-stopping">STOPPING</span></td>
         <td class="relay-off">OFF</td>
-        <td class="relay-on">ON</td>
-        <td>Motor braking (50 ms dead-time before STOP asserts). Waiting for pressure to fall to cut-in.</td>
+        <td>Motor de-energised. Waiting for pressure to fall to cut-in.</td>
       </tr>
       <tr>
         <td><span class="chip s-fault">FAULT</span></td>
         <td class="relay-off">OFF</td>
-        <td class="relay-on">ON</td>
         <td>Latched fault. Operator must acknowledge alarm and press RESET.</td>
       </tr>
       <tr>
         <td><span class="chip s-estop">E-STOP</span></td>
         <td class="relay-off">OFF</td>
-        <td class="relay-off">OFF</td>
-        <td>Both relays cut immediately (no dead-time). NC contact must physically re-close before reset allowed.</td>
+        <td>Relay cut immediately. NC contact must physically re-close before reset allowed.</td>
       </tr>
     </table>
   </div>
@@ -381,7 +375,7 @@ flowchart TD
 
 <div class="footer">
   F7Compressor firmware &nbsp;·&nbsp; STM32H723ZGTx &nbsp;·&nbsp;
-  Relay dead-time: 50 ms &nbsp;·&nbsp; ADC sampled at ~10 Hz &nbsp;·&nbsp; SM updated every main-loop tick
+  Single RUN relay (PG4) &nbsp;·&nbsp; ADC sampled at ~10 Hz &nbsp;·&nbsp; SM updated every main-loop tick
 </div>
 
 <script>
