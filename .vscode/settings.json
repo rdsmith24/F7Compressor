@@ -1,6 +1,6 @@
 {
-    "cortex-debug.gdbPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gdb",
-    "cortex-debug.objdumpPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-objdump",
+    "cortex-debug.gdbPath": "/opt/arm/toolchain/bin/arm-none-eabi-gdb",
+    "cortex-debug.objdumpPath": "/opt/arm/toolchain/bin/arm-none-eabi-objdump",
     "cortex-debug.openocdPath": "/usr/local/bin/openocd",
     "terminal.integrated.fontSize": 16,
     "makefile.configureOnOpen": true,
