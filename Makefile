@@ -249,7 +249,7 @@ JLINK_IF  ?= SWD
 JLINK_SPD ?= 4000
 
 flash: all
-	printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nverifybin $(BUILD_DIR)/$(TARGET).bin 0x08000000\nreset\nexit\n" > /tmp/jlink_flash.jlink
+	printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nverifyfile $(BUILD_DIR)/$(TARGET).hex\nreset\nexit\n" > /tmp/jlink_flash.jlink
 	$(JLINK) -device $(JLINK_DEV) -if $(JLINK_IF) -speed $(JLINK_SPD) -autoconnect 1 -CommandFile /tmp/jlink_flash.jlink
 #######################################
 # dependencies

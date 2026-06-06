@@ -26,7 +26,7 @@ make flash JLINK_SPD=1000     # default 4000 kHz
 
 ## VS Code Debug
 
-`.vscode/launch.json` is configured for **J-Link** (`serverpath: /opt/SEGGER/JLink/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector); remove CN2 SWD jumpers to isolate the on-board ST-Link.
+`.vscode/launch.json` is configured for **J-Link** (`serverpath: /opt/SEGGER/JLink/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector). Do not connect CN1 (ST-Link USB) at the same time — there are no CN2 jumpers on this board; ST-Link and J-Link would contend on the SWD lines. JP3 (T_NRST, 2-pin) must remain installed.
 
 **Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
 - J-Link RTT (preferred — no UART, no pins, zero overhead)
@@ -261,7 +261,7 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 ## Hardware Summary
 
 - **MCU**: STM32H723ZGTx on NUCLEO-H723ZG, 480MHz (HSE 8MHz → PLL1, VOS0)
-- **Power**: USB via CN1 (ST-Link connector) powers the board by default. JP3 is a 2-pin MCU_RST jumper (keep installed). For external 5V supply, use CN9 pin 6.
+- **Power**: USB via CN1 (ST-Link connector) powers the board by default (JP2 pins 1-2, STLK). For external 5V, connect to CN11 pin 6 and move JP2 to pins 5-6 (EXT). JP3 is the 2-pin T_NRST jumper (keep installed). JP5 pins 1-2 sets VDD = 3.3V (default).
 - **Debug**: SWD only — USART3 is consumed by FMC (PD8/PD9 = FMC_D13/D14), no ST-Link VCP
 - **Heartbeat LED**: LD1 (Green, PB0) toggled at 1Hz in the main loop — confirms firmware is running after first flash.
 
