@@ -10,43 +10,26 @@ STM32H723ZG firmware for controlling a 220VAC air compressor with a Waveshare 3.
 
 ```bash
 make -j4          # build (outputs build/F7Compressor.{elf,hex,bin})
-make flash        # build then flash+verify+reset via OpenOCD + ST-Link
+make flash        # build then flash+verify+reset via J-Link
 make clean        # remove build directory
 ```
 
-`make flash` uses `openocd` (must be on `PATH`) with ST-Link SWD. Override if needed:
+`make flash` uses `JLinkExe` at `/opt/SEGGER/JLink/JLinkExe`. Override if needed:
 
 ```bash
-make flash OPENOCD=/usr/local/bin/openocd
-make flash OPENOCD_CFG="-f interface/stlink.cfg -f target/stm32h7x.cfg"
+make flash JLINK=/path/to/JLinkExe
+make flash JLINK_IF=JTAG      # default SWD
+make flash JLINK_SPD=1000     # default 4000 kHz
 ```
 
 **Toolchain**: `arm-none-eabi-gcc` must be on `PATH`. Flags: `-mcpu=cortex-m7 -mfpu=fpv5-d16 -mfloat-abi=hard -Og -g -gdwarf-2`.
 
 ## VS Code Debug
 
-`.vscode/launch.json` is configured for **OpenOCD + ST-Link** with `${workspaceRoot}`-relative paths:
-
-```json
-{
-    "name": "Debug with OpenOCD",
-    "type": "cortex-debug",
-    "request": "launch",
-    "servertype": "openocd",
-    "configFiles": [
-        "/usr/share/openocd/scripts/interface/stlink.cfg",
-        "/usr/share/openocd/scripts/target/stm32h7x.cfg"
-    ],
-    "executable": "${workspaceRoot}/build/F7Compressor.elf",
-    "svdFile": "${workspaceRoot}/STM32H723.svd",
-    "runToEntryPoint": "main"
-}
-```
-
-Alternatively, use a **SEGGER J-Link EDU Mini** with `servertype: jlink` and `device: STM32H723ZG`. Connect to CN4 (20-pin ARM debug connector); remove CN2 SWD jumpers to isolate on-board ST-Link. J-Link RTT then provides zero-overhead debug output.
+`.vscode/launch.json` is configured for **J-Link** (`serverpath: /opt/SEGGER/JLink/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector); remove CN2 SWD jumpers to isolate the on-board ST-Link.
 
 **Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
-- J-Link RTT (preferred — no UART, no pins)
+- J-Link RTT (preferred — no UART, no pins, zero overhead)
 - USART1 (PA9=TX, PA10=RX) + USB-serial adapter (shows as `/dev/ttyUSB*` on Linux)
 
 ## Current Project Status

@@ -241,14 +241,16 @@ clean:
 	-rm -fR $(BUILD_DIR)
 
 ####################################
-# OpenOCD flash
+# J-Link flash
 ####################################
-OPENOCD        ?= openocd
-OPENOCD_CFG    ?= -f interface/stlink.cfg -f target/stm32h7x.cfg
+JLINK     ?= /opt/SEGGER/JLink/JLinkExe
+JLINK_DEV ?= STM32H723ZG
+JLINK_IF  ?= SWD
+JLINK_SPD ?= 4000
 
 flash: all
-	$(OPENOCD) $(OPENOCD_CFG) \
-	    -c "program $(BUILD_DIR)/$(TARGET).elf verify reset exit"
+	$(JLINK) -device $(JLINK_DEV) -if $(JLINK_IF) -speed $(JLINK_SPD) -autoconnect 1 \
+	    -CommandFile <(printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nverifybin $(BUILD_DIR)/$(TARGET).bin 0x08000000\nreset\nexit\n")
 #######################################
 # dependencies
 #######################################
