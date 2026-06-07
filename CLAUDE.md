@@ -267,20 +267,31 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 
 ### Key Pin Assignments
 
-| Function | Pin | Notes |
-|---|---|---|
-| FMC_A0 (RS/DC) | PF0 | AF12; 0x60000000=cmd, 0x60000002=data |
-| FMC_D13/D14 | PD8/PD9 | AF12; USART3 must be disabled |
-| LCD_RST | PG2 | GPIO output, init HIGH; library uses soft-reset only |
-| BL_CTRL | PC6 | TIM3_CH1 PWM AF2, 1kHz, 75% default; LCD_BL_ON/OFF ineffective in AF mode |
-| TP_CS | PF10 | SPI5 touch chip select |
-| TP_IRQ | PG3 | EXTI3 falling edge, pull-up; polled by pin state in XPT2046_Read |
-| Oil pressure switch | PC0 | EXTI0, both edges, pull-up, NC contact |
-| Emergency stop | PC2 | EXTI2, falling edge, pull-up, NC contact |
-| RUN relay | PG4 | Output, init LOW; HIGH = compressor runs |
-| (unused) | PG5 | Output, init LOW |
-| Pressure 4-20mA | PA3 | ADC1_INP15; 150Ω shunt → 0.6–3.0V |
-| Heartbeat LED | PB0 | LD1 Green (NUCLEO built-in); toggled 1Hz in firmware |
+CN7–CN10 are the Zio/Arduino female sockets (populated). CN11/CN12 are the Morpho 2×38 footprints (★ = unpopulated from factory — solder a male pin header to access).
+
+| Function | Pin | NUCLEO Connector | Notes |
+|---|---|---|---|
+| FMC_A0 (RS/DC) | PF0 | CN9 pin 21 | AF12; 0x60000000=cmd, 0x60000002=data |
+| FMC_NE1 (LCD CS) | PD7 | CN9 pin 2 | AF12; Bank 1 chip select |
+| FMC_NOE (RD) | PD4 | CN9 pin 8 | AF12; read strobe |
+| FMC_NWE (WR) | PD5 | CN9 pin 6 | AF12; write strobe |
+| FMC_D0, D1 | PD14, PD15 | CN7 pin 14, 16 | AF12; 16-bit data bus |
+| FMC_D2, D3 | PD0, PD1 | CN9 pin 23, 25 | AF12 |
+| FMC_D4–D12 | PE7–PE15 | CN10 P20, P18, P4, P24, P6, P26, P10, P8, P30 | AF12 (D4=PE7=P20 … D12=PE15=P30) |
+| FMC_D13–D15 | PD8–PD10 | CN12-P10★, CN11-P69★, CN12-P65★ | AF12; USART3 must be disabled |
+| LCD_RST | PG2 | CN8 pin 14 | GPIO output, init HIGH; library uses soft-reset only |
+| BL_CTRL | PC6 | CN7 pin 1 | TIM3_CH1 PWM AF2, 1kHz, 75% default; LCD_BL_ON/OFF ineffective in AF mode |
+| TP_CS | PF10 | CN9 pin 11 | SPI5 touch chip select |
+| TP_IRQ | PG3 | CN8 pin 16 | EXTI3 falling edge, pull-up; polled by pin state in XPT2046_Read |
+| SPI5_SCK | PF7 | CN9 pin 26 | SPI5 AF5 |
+| SPI5_MISO | PF8 | CN9 pin 24 | SPI5 AF5 |
+| SPI5_MOSI | PF9 | CN9 pin 28 | SPI5 AF5 |
+| Oil pressure switch | PC0 | CN9 pin 3 | EXTI0, both edges, pull-up, NC contact |
+| Emergency stop | PC2 | CN9 pin 9 | EXTI2, falling edge, pull-up, NC contact |
+| RUN relay | PG4 | CN12 pin 69★ | Output, init LOW; HIGH = compressor runs |
+| (unused) | PG5 | CN12 pin 68★ | Output, init LOW |
+| Pressure 4-20mA | PA3 | CN9 pin 1 | ADC1_INP15; 150Ω shunt → 0.6–3.0V |
+| Heartbeat LED | PB0 | LD1 (on-board) | LD1 Green (NUCLEO built-in); toggled 1Hz in firmware |
 
 150Ω resistor between PA3 and GND (4mA→0.6V, 20mA→3.0V). Add 100nF decoupling cap.
 

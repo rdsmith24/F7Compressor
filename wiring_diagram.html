@@ -181,13 +181,16 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <text x="580" y="150" text-anchor="middle" fill="#58a6ff" font-size="14" font-weight="700">NUCLEO-H723ZG</text>
   <text x="580" y="163" text-anchor="middle" fill="#3568a0" font-size="9.5">STM32H723ZGTx · 480 MHz · ARM Cortex-M7 · 1 MB Flash</text>
 
-  <!-- Connector badge — CN11 Morpho Left -->
-  <rect x="396" y="174" width="118" height="17" rx="3" fill="#0a1a30" stroke="#2f6eb5" stroke-width="1.5"/>
-  <text x="455" y="186" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-weight="700">CN11 — Morpho Left</text>
+  <!-- Connector badge — CN8/CN9 Zio Left -->
+  <rect x="396" y="174" width="178" height="17" rx="3" fill="#0a1a30" stroke="#2f6eb5" stroke-width="1.5"/>
+  <text x="485" y="186" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-weight="700">CN8 · CN9 — Zio Left (populated)</text>
 
-  <!-- Connector badge — CN12 Morpho Right -->
-  <rect x="646" y="174" width="122" height="17" rx="3" fill="#0a1a30" stroke="#2f6eb5" stroke-width="1.5"/>
-  <text x="707" y="186" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-weight="700">CN12 — Morpho Right</text>
+  <!-- Connector badge — CN7/CN10 Zio Right -->
+  <rect x="586" y="174" width="182" height="17" rx="3" fill="#0a1a30" stroke="#2f6eb5" stroke-width="1.5"/>
+  <text x="677" y="186" text-anchor="middle" fill="#58a6ff" font-size="9.5" font-weight="700">CN7 · CN10 — Zio Right (populated)</text>
+
+  <!-- Morpho note -->
+  <text x="580" y="198" text-anchor="middle" fill="#3a5570" font-size="7.5">★ PG4 · PD8 · PD9 · PD10 are on CN11/CN12 (Morpho — unpopulated; solder 2×38 pin header to access)</text>
 
   <!-- CN4 label (SWD debug top) - make consistent style -->
   <rect x="485" y="108" width="144" height="14" rx="3" fill="#0a1a30" stroke="#4a5568" stroke-width="1.2"/>
@@ -211,27 +214,27 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <!-- GND -->
   <circle cx="390" cy="228" r="5" fill="#27ae60" stroke="#222" stroke-width="1"/>
   <text x="400" y="228" fill="#27ae60" font-size="10" font-weight="600">GND</text>
-  <text x="400" y="239" fill="#4d4d4d" font-size="8.5">CN11</text>
+  <text x="400" y="239" fill="#4d4d4d" font-size="8.5">CN9 pin 12</text>
 
   <!-- PA3 -->
   <circle cx="390" cy="293" r="5" fill="#f39c12" stroke="#222" stroke-width="1"/>
   <text x="400" y="290" fill="#f39c12" font-size="10" font-weight="600">PA3</text>
-  <text x="400" y="301" fill="#4d4d4d" font-size="8.5">CN11 · ADC1_INP15 · 150 Ω shunt</text>
+  <text x="400" y="301" fill="#4d4d4d" font-size="8.5">CN9 pin 1 · ADC1_INP15 · 150 Ω shunt</text>
 
   <!-- PC0 -->
   <circle cx="390" cy="348" r="5" fill="#1abc9c" stroke="#222" stroke-width="1"/>
   <text x="400" y="345" fill="#1abc9c" font-size="10" font-weight="600">PC0  OIL_SW</text>
-  <text x="400" y="356" fill="#4d4d4d" font-size="8.5">CN11 · EXTI0 both-edges · pull-up</text>
+  <text x="400" y="356" fill="#4d4d4d" font-size="8.5">CN9 pin 3 · EXTI0 both-edges · pull-up</text>
 
   <!-- PC2 -->
   <circle cx="390" cy="403" r="5" fill="#1abc9c" stroke="#222" stroke-width="1"/>
   <text x="400" y="400" fill="#1abc9c" font-size="10" font-weight="600">PC2  ESTOP</text>
-  <text x="400" y="411" fill="#4d4d4d" font-size="8.5">CN11 · EXTI2 falling-edge · pull-up</text>
+  <text x="400" y="411" fill="#4d4d4d" font-size="8.5">CN9 pin 9 · EXTI2 falling-edge · pull-up</text>
 
   <!-- PG4 -->
   <circle cx="390" cy="493" r="5" fill="#e74c3c" stroke="#222" stroke-width="1"/>
   <text x="400" y="490" fill="#e74c3c" font-size="10" font-weight="600">PG4  RELAY_RUN</text>
-  <text x="400" y="501" fill="#4d4d4d" font-size="8.5">CN12 · GPIO out · HIGH=run · LOW=stop</text>
+  <text x="400" y="501" fill="#4d4d4d" font-size="8.5">CN12 pin 69 (Morpho★) · GPIO out · HIGH=run · LOW=stop</text>
 
   <!-- ── TOP PINS (CN4 SWD) ── -->
   <circle cx="472" cy="130" r="4" fill="#95a5a6" stroke="#222" stroke-width="1"/>
@@ -246,63 +249,74 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <!-- ── BOTTOM PINS (Relay) ── -->
   <circle cx="462" cy="700" r="4" fill="#27ae60" stroke="#222" stroke-width="1"/>
   <text x="462" y="712" text-anchor="middle" fill="#27ae60" font-size="8.5">GND</text>
-  <text x="462" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN11</text>
+  <text x="462" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN9 pin 12</text>
   <circle cx="515" cy="700" r="4" fill="#e74c3c" stroke="#222" stroke-width="1"/>
   <text x="515" y="712" text-anchor="middle" fill="#e74c3c" font-size="8.5">5V</text>
-  <text x="515" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN11</text>
+  <text x="515" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN8 pin 9</text>
   <circle cx="567" cy="700" r="4" fill="#e74c3c" stroke="#222" stroke-width="1"/>
   <text x="567" y="712" text-anchor="middle" fill="#e74c3c" font-size="8.5">PG4</text>
-  <text x="567" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN12</text>
+  <text x="567" y="721" text-anchor="middle" fill="#4d4d4d" font-size="7.5">CN12-P69★</text>
 
   <!-- ── RIGHT SIDE PINS ── -->
   <!-- FMC D[0:15] bus -->
   <circle cx="770" cy="203" r="6" fill="#3498db" stroke="#222" stroke-width="1"/>
   <text x="760" y="199" text-anchor="end" fill="#3498db" font-size="10" font-weight="700">D[0:15]</text>
-  <text x="760" y="211" text-anchor="end" fill="#1a4060" font-size="8.5">16-bit FMC data (PE7-15, PD0-1, PD8-10, PD14-15)</text>
+  <text x="760" y="211" text-anchor="end" fill="#1a4060" font-size="8.5">CN7/CN9/CN10 (Zio) + CN11/CN12 (Morpho★) — see table</text>
 
   <!-- FMC_A0 / RS -->
   <circle cx="770" cy="268" r="4" fill="#2980b9" stroke="#222" stroke-width="1"/>
   <text x="760" y="272" text-anchor="end" fill="#2980b9" font-size="10">PF0  FMC_A0  (RS / D·C)</text>
+  <text x="760" y="283" text-anchor="end" fill="#3d6080" font-size="8">CN9 pin 21</text>
 
   <!-- FMC_NOE -->
   <circle cx="770" cy="303" r="4" fill="#2980b9" stroke="#222" stroke-width="1"/>
   <text x="760" y="307" text-anchor="end" fill="#2980b9" font-size="10">PD4  FMC_NOE  (RD)</text>
+  <text x="760" y="318" text-anchor="end" fill="#3d6080" font-size="8">CN9 pin 8</text>
 
   <!-- FMC_NWE -->
   <circle cx="770" cy="338" r="4" fill="#2980b9" stroke="#222" stroke-width="1"/>
   <text x="760" y="342" text-anchor="end" fill="#2980b9" font-size="10">PD5  FMC_NWE  (WR)</text>
+  <text x="760" y="353" text-anchor="end" fill="#3d6080" font-size="8">CN9 pin 6</text>
 
   <!-- FMC_NE1 -->
   <circle cx="770" cy="373" r="4" fill="#2980b9" stroke="#222" stroke-width="1"/>
   <text x="760" y="377" text-anchor="end" fill="#2980b9" font-size="10">PD7  FMC_NE1  (CS)</text>
+  <text x="760" y="388" text-anchor="end" fill="#3d6080" font-size="8">CN9 pin 2</text>
 
   <!-- LCD_RST -->
   <circle cx="770" cy="408" r="4" fill="#e91e63" stroke="#222" stroke-width="1"/>
   <text x="760" y="412" text-anchor="end" fill="#e91e63" font-size="10">PG2  LCD_RST  (held HIGH)</text>
+  <text x="760" y="423" text-anchor="end" fill="#7a2040" font-size="8">CN8 pin 14</text>
 
   <!-- BL_PWM -->
   <circle cx="770" cy="443" r="4" fill="#e91e63" stroke="#222" stroke-width="1"/>
   <text x="760" y="447" text-anchor="end" fill="#e91e63" font-size="10">PC6  TIM3_CH1  BL PWM</text>
+  <text x="760" y="458" text-anchor="end" fill="#7a2040" font-size="8">CN7 pin 1</text>
 
   <!-- SPI5 SCK -->
   <circle cx="770" cy="493" r="4" fill="#9b59b6" stroke="#222" stroke-width="1"/>
   <text x="760" y="497" text-anchor="end" fill="#9b59b6" font-size="10">PF7  SPI5_SCK</text>
+  <text x="760" y="508" text-anchor="end" fill="#5a3570" font-size="8">CN9 pin 26</text>
 
   <!-- SPI5 MISO -->
   <circle cx="770" cy="526" r="4" fill="#9b59b6" stroke="#222" stroke-width="1"/>
   <text x="760" y="530" text-anchor="end" fill="#9b59b6" font-size="10">PF8  SPI5_MISO</text>
+  <text x="760" y="541" text-anchor="end" fill="#5a3570" font-size="8">CN9 pin 24</text>
 
   <!-- SPI5 MOSI -->
   <circle cx="770" cy="559" r="4" fill="#9b59b6" stroke="#222" stroke-width="1"/>
   <text x="760" y="563" text-anchor="end" fill="#9b59b6" font-size="10">PF9  SPI5_MOSI</text>
+  <text x="760" y="574" text-anchor="end" fill="#5a3570" font-size="8">CN9 pin 28</text>
 
   <!-- TP_CS -->
   <circle cx="770" cy="592" r="4" fill="#9b59b6" stroke="#222" stroke-width="1"/>
   <text x="760" y="596" text-anchor="end" fill="#9b59b6" font-size="10">PF10  TP_CS</text>
+  <text x="760" y="607" text-anchor="end" fill="#5a3570" font-size="8">CN9 pin 11</text>
 
   <!-- TP_IRQ -->
   <circle cx="770" cy="625" r="4" fill="#9b59b6" stroke="#222" stroke-width="1"/>
   <text x="760" y="629" text-anchor="end" fill="#9b59b6" font-size="10">PG3  TP_IRQ  EXTI3</text>
+  <text x="760" y="640" text-anchor="end" fill="#5a3570" font-size="8">CN8 pin 16</text>
 
   <!-- 3.3V to LCD -->
   <circle cx="770" cy="660" r="4" fill="#e67e22" stroke="#222" stroke-width="1"/>
@@ -633,6 +647,13 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
 </svg>
 </div>
 
+<!-- ═══════════════════ CONNECTOR KEY ═══════════════════ -->
+<p style="font-size:0.8rem;color:#6e7681;margin-bottom:16px;">
+  <strong style="color:#58a6ff">CN7 · CN8 · CN9 · CN10</strong> — Zio/Arduino female headers, populated from factory. &nbsp;|&nbsp;
+  <strong style="color:#8b949e">CN11 · CN12</strong> — Morpho 2×38 pads, unpopulated from factory; solder a male pin header to access. &nbsp;
+  <span style="color:#c9d1d9">★</span> = Morpho-only signal (PG4, PD8, PD9, PD10).
+</p>
+
 <!-- ═══════════════════ WIRING TABLES ═══════════════════ -->
 <div class="tables">
 
@@ -640,19 +661,19 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <div class="tcard">
     <div class="thead">FMC — LCD Interface (ILI9341) · Waveshare P1 or P2 (H17X2 34-pin)</div>
     <table>
-      <tr><th>MCU Pin</th><th>FMC Signal</th><th>LCD Signal</th><th>P1/P2 Pin</th><th>Note</th></tr>
-      <tr><td><code>PF0</code></td><td>FMC_A0</td><td>RS / D·C</td><td>20</td><td>A0=0 → cmd (0x60000000), A0=1 → data (0x60000002)</td></tr>
-      <tr><td><code>PD7</code></td><td>FMC_NE1</td><td>LCD_CS</td><td>19</td><td>Bank 1 chip select</td></tr>
-      <tr><td><code>PD4</code></td><td>FMC_NOE</td><td>RD</td><td>22</td><td>Read strobe</td></tr>
-      <tr><td><code>PD5</code></td><td>FMC_NWE</td><td>WR</td><td>21</td><td>Write strobe</td></tr>
-      <tr><td><code>PD14, PD15</code></td><td>FMC_D0, D1</td><td>D0, D1</td><td>1, 4</td><td rowspan="4">16-bit data bus AF12; GND on pins 2, 3</td></tr>
-      <tr><td><code>PD0, PD1</code></td><td>FMC_D2, D3</td><td>D2, D3</td><td>5, 6</td></tr>
-      <tr><td><code>PE7–PE15</code></td><td>FMC_D4–D12</td><td>D4–D12</td><td>7–15</td></tr>
-      <tr><td><code>PD8–PD10</code></td><td>FMC_D13–D15</td><td>D13–D15</td><td>16–18</td></tr>
-      <tr><td><code>PG2</code></td><td>GPIO out</td><td>RST</td><td>23</td><td>Held HIGH; library uses SW reset only</td></tr>
-      <tr><td><code>PC6</code></td><td>TIM3_CH1 AF2</td><td>BL_CTRL</td><td>27</td><td>1 kHz PWM 75% — LCD_BL_ON/OFF macros ineffective in AF mode</td></tr>
-      <tr><td>3.3 V rail</td><td>—</td><td>VCC-3V3</td><td>33</td><td>From NUCLEO onboard LDO</td></tr>
-      <tr><td>GND</td><td>—</td><td>GND</td><td>2, 3, 34</td><td>Common ground</td></tr>
+      <tr><th>MCU Pin</th><th>NUCLEO Connector</th><th>FMC Signal</th><th>LCD Signal</th><th>P1/P2 Pin</th><th>Note</th></tr>
+      <tr><td><code>PF0</code></td><td>CN9 pin 21</td><td>FMC_A0</td><td>RS / D·C</td><td>20</td><td>A0=0 → cmd (0x60000000), A0=1 → data (0x60000002)</td></tr>
+      <tr><td><code>PD7</code></td><td>CN9 pin 2</td><td>FMC_NE1</td><td>LCD_CS</td><td>19</td><td>Bank 1 chip select</td></tr>
+      <tr><td><code>PD4</code></td><td>CN9 pin 8</td><td>FMC_NOE</td><td>RD</td><td>22</td><td>Read strobe</td></tr>
+      <tr><td><code>PD5</code></td><td>CN9 pin 6</td><td>FMC_NWE</td><td>WR</td><td>21</td><td>Write strobe</td></tr>
+      <tr><td><code>PD14, PD15</code></td><td>CN7 pin 14, 16</td><td>FMC_D0, D1</td><td>D0, D1</td><td>1, 4</td><td rowspan="4">16-bit data bus AF12; GND on pins 2, 3</td></tr>
+      <tr><td><code>PD0, PD1</code></td><td>CN9 pin 23, 25</td><td>FMC_D2, D3</td><td>D2, D3</td><td>5, 6</td></tr>
+      <tr><td><code>PE7–PE15</code></td><td>CN10: P20, P18, P4, P24, P6, P26, P10, P8, P30</td><td>FMC_D4–D12</td><td>D4–D12</td><td>7–15</td></tr>
+      <tr><td><code>PD8–PD10</code></td><td>CN12-P10★, CN11-P69★, CN12-P65★</td><td>FMC_D13–D15</td><td>D13–D15</td><td>16–18</td></tr>
+      <tr><td><code>PG2</code></td><td>CN8 pin 14</td><td>GPIO out</td><td>RST</td><td>23</td><td>Held HIGH; library uses SW reset only</td></tr>
+      <tr><td><code>PC6</code></td><td>CN7 pin 1</td><td>TIM3_CH1 AF2</td><td>BL_CTRL</td><td>27</td><td>1 kHz PWM 75% — LCD_BL_ON/OFF macros ineffective in AF mode</td></tr>
+      <tr><td>3.3 V rail</td><td>Internal LDO</td><td>—</td><td>VCC-3V3</td><td>33</td><td>From NUCLEO onboard LDO</td></tr>
+      <tr><td>GND</td><td>CN9 pin 12</td><td>—</td><td>GND</td><td>2, 3, 34</td><td>Common ground</td></tr>
     </table>
   </div>
 
@@ -660,13 +681,13 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <div class="tcard">
     <div class="thead">SPI5 — Touch Controller (XPT2046) · Waveshare P1 or P2</div>
     <table>
-      <tr><th>MCU Pin</th><th>SPI Signal</th><th>LCD Signal</th><th>P1/P2 Pin</th><th>Note</th></tr>
-      <tr><td><code>PF7</code></td><td>SPI5_SCK AF5</td><td>TP_SCK</td><td>30</td><td>~1.9 MHz (120 MHz PCLK2 ÷ 64)</td></tr>
-      <tr><td><code>PF8</code></td><td>SPI5_MISO AF5</td><td>TP_SDO (DOUT)</td><td>32</td><td>Touch ADC data out</td></tr>
-      <tr><td><code>PF9</code></td><td>SPI5_MOSI AF5</td><td>TP_SDI (DIN)</td><td>31</td><td>Command in</td></tr>
-      <tr><td><code>PF10</code></td><td>GPIO out</td><td>TP_CS</td><td>29</td><td>Active LOW, init HIGH</td></tr>
-      <tr><td><code>PG3</code></td><td>GPIO in, EXTI3</td><td>TP_IRQ</td><td>28</td><td>Active LOW, pull-up; polled by pin state in main loop</td></tr>
-      <tr><td colspan="5" class="warn">⚠ Tune XPT_CAL_* constants in <code>BSP/Inc/xpt2046_spi.h</code> after first flash</td></tr>
+      <tr><th>MCU Pin</th><th>NUCLEO Connector</th><th>SPI Signal</th><th>LCD Signal</th><th>P1/P2 Pin</th><th>Note</th></tr>
+      <tr><td><code>PF7</code></td><td>CN9 pin 26</td><td>SPI5_SCK AF5</td><td>TP_SCK</td><td>30</td><td>~1.9 MHz (120 MHz PCLK2 ÷ 64)</td></tr>
+      <tr><td><code>PF8</code></td><td>CN9 pin 24</td><td>SPI5_MISO AF5</td><td>TP_SDO (DOUT)</td><td>32</td><td>Touch ADC data out</td></tr>
+      <tr><td><code>PF9</code></td><td>CN9 pin 28</td><td>SPI5_MOSI AF5</td><td>TP_SDI (DIN)</td><td>31</td><td>Command in</td></tr>
+      <tr><td><code>PF10</code></td><td>CN9 pin 11</td><td>GPIO out</td><td>TP_CS</td><td>29</td><td>Active LOW, init HIGH</td></tr>
+      <tr><td><code>PG3</code></td><td>CN8 pin 16</td><td>GPIO in, EXTI3</td><td>TP_IRQ</td><td>28</td><td>Active LOW, pull-up; polled by pin state in main loop</td></tr>
+      <tr><td colspan="6" class="warn">⚠ Tune XPT_CAL_* constants in <code>BSP/Inc/xpt2046_spi.h</code> after first flash</td></tr>
     </table>
   </div>
 
@@ -674,12 +695,12 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <div class="tcard">
     <div class="thead">Analog &amp; Digital I/O</div>
     <table>
-      <tr><th>MCU Pin</th><th>Signal</th><th>Type</th><th>Detail</th></tr>
-      <tr><td><code>PA3</code></td><td>Pressure ADC</td><td>ADC1_INP15 analog in</td><td>150 Ω shunt to GND; 4 mA→0.6V, 20 mA→3.0V. Add 100 nF bypass cap</td></tr>
-      <tr><td><code>PC0</code></td><td>OIL_SW</td><td>EXTI0 both-edges, pull-up</td><td>NC oil pressure switch. LOW=OK, HIGH=fault. ISR updates SM flag</td></tr>
-      <tr><td><code>PC2</code></td><td>ESTOP</td><td>EXTI2 falling-edge, pull-up</td><td>NC e-stop. Falling edge = contact re-closes (reset). HIGH level polled each loop</td></tr>
-      <tr><td><code>PG4</code></td><td>RELAY_RUN → IN1</td><td>GPIO out, init LOW</td><td>SunFounder Lab 4-Ch Relay CH1. Firmware drives HIGH=run, LOW=stop. Module is active HIGH; CH1 NO contact → motor starter RUN coil. CH2–CH4 unused (IN2–IN4 leave floating or tie LOW).</td></tr>
-      <tr><td><code>PG5</code></td><td>—</td><td>GPIO out, unused</td><td>Configured as output by CubeMX; not connected</td></tr>
+      <tr><th>MCU Pin</th><th>NUCLEO Connector</th><th>Signal</th><th>Type</th><th>Detail</th></tr>
+      <tr><td><code>PA3</code></td><td>CN9 pin 1</td><td>Pressure ADC</td><td>ADC1_INP15 analog in</td><td>150 Ω shunt to GND; 4 mA→0.6V, 20 mA→3.0V. Add 100 nF bypass cap</td></tr>
+      <tr><td><code>PC0</code></td><td>CN9 pin 3</td><td>OIL_SW</td><td>EXTI0 both-edges, pull-up</td><td>NC oil pressure switch. LOW=OK, HIGH=fault. ISR updates SM flag</td></tr>
+      <tr><td><code>PC2</code></td><td>CN9 pin 9</td><td>ESTOP</td><td>EXTI2 falling-edge, pull-up</td><td>NC e-stop. Falling edge = contact re-closes (reset). HIGH level polled each loop</td></tr>
+      <tr><td><code>PG4</code></td><td>CN12 pin 69 (Morpho★)</td><td>RELAY_RUN → IN1</td><td>GPIO out, init LOW</td><td>SunFounder Lab 4-Ch Relay CH1. Firmware drives HIGH=run, LOW=stop. Module is active HIGH; CH1 NO contact → motor starter RUN coil. CH2–CH4 unused (IN2–IN4 leave floating or tie LOW).</td></tr>
+      <tr><td><code>PG5</code></td><td>CN12 pin 68 (Morpho★)</td><td>—</td><td>GPIO out, unused</td><td>Configured as output by CubeMX; not connected</td></tr>
     </table>
   </div>
 
@@ -690,7 +711,7 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
       <tr><th>Source</th><th>Connector</th><th>Voltage</th><th>Note</th></tr>
       <tr><td>External 5 VDC adapter</td><td>CN11 pin 6 (E5V)</td><td>5 VDC</td><td><strong>Primary power source.</strong> JP2 → pins 5-6 (EXT). JP5 pins 1-2 (VDD = 3.3 V). JP3 (T_NRST) keep installed.</td></tr>
       <tr><td>NUCLEO onboard LDO</td><td>Internal</td><td>3.3 V</td><td>Derived from E5V via onboard regulator — powers MCU core, LCD VCC, touch VCC</td></tr>
-      <tr><td>Relay module VCC</td><td>CN11 5V pin</td><td>5 VDC</td><td>Tapped from the same E5V rail; relay coils optoisolated from 3.3V logic side</td></tr>
+      <tr><td>Relay module VCC</td><td>CN8 pin 9</td><td>5 VDC</td><td>Tapped from the same E5V rail via CN8 pin 9 (Zio 5V header); relay coils optoisolated from 3.3V logic side</td></tr>
       <tr><td>Pressure loop supply</td><td>External</td><td>24 VDC</td><td>Separate loop supply for 4-20 mA transmitter (not from NUCLEO)</td></tr>
       <tr><td>Motor mains</td><td>Relay NO contacts</td><td>220 VAC</td><td>Relay contacts only — galvanically isolated from logic</td></tr>
       <tr><td colspan="4" class="warn">⚠ CN1 (ST-Link USB) is for J-Link programming/debug only — do not use as a power source. Do not connect CN1 and J-Link on CN4 simultaneously (both contend on SWD lines).</td></tr>
