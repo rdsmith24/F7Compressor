@@ -4,12 +4,18 @@
             "name": "F7Compressor",
             "includePath": [
                 "${workspaceFolder}/Core/Inc",
+                "${workspaceFolder}/BSP/Inc",
+                "${workspaceFolder}/App/Inc",
                 "${workspaceFolder}/Drivers/STM32H7xx_HAL_Driver/Inc",
+                "${workspaceFolder}/Drivers/STM32H7xx_HAL_Driver/Inc/Legacy",
                 "${workspaceFolder}/Drivers/CMSIS/Device/ST/STM32H7xx/Include",
                 "${workspaceFolder}/Drivers/CMSIS/Include"
             ],
             "defines": [
                 "USE_FULL_LL_DRIVER",
+                "USE_HAL_DRIVER",
+                "USE_PWR_LDO_SUPPLY",
+                "STM32H723xx",
                 "HSE_VALUE=8000000",
                 "HSE_STARTUP_TIMEOUT=100",
                 "LSE_STARTUP_TIMEOUT=5000",
@@ -17,21 +23,18 @@
                 "EXTERNAL_CLOCK_VALUE=12288000",
                 "HSI_VALUE=64000000",
                 "LSI_VALUE=32000",
-                "VDD_VALUE=3300",
-                "USE_PWR_LDO_SUPPLY",
-                "STM32H723xx"
+                "VDD_VALUE=3300"
             ],
             "intelliSenseMode": "gcc-arm",
             "compilerPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
             "compilerArgs": [
-                "mcpu=cortex-m7",
+                "-mcpu=cortex-m7",
                 "-mfpu=fpv5-d16",
                 "-mfloat-abi=hard",
                 "-mthumb"
             ],
             "cStandard": "c17",
-            "cppStandard": "c++17",
-            "configurationProvider": "ms-vscode.makefile-tools"
+            "cppStandard": "c++17"
         }
     ],
     "version": 4

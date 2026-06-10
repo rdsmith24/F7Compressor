@@ -1,7 +1,7 @@
 /*
  * image.h
  *
- *  Created on: 31 серп. 2019 р.
+ *  Created on: 31 пїЅпїЅпїЅпїЅ. 2019 пїЅ.
  *      Author: tabur
  */
 
@@ -10,7 +10,7 @@
 
 #include <stdint.h>
 
-typedef struct _tImage
+typedef struct
 {
   uint16_t 					xSize;
   uint16_t 					ySize;
