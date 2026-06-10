@@ -22,7 +22,7 @@
                 "STM32H723xx"
             ],
             "intelliSenseMode": "gcc-arm",
-            "compilerPath": "/opt/arm/toolchain/bin/arm-none-eabi-gcc",
+            "compilerPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
             "compilerArgs": [
                 "mcpu=cortex-m7",
                 "-mfpu=fpv5-d16",

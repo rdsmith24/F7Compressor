@@ -6,7 +6,7 @@
             "type": "cortex-debug",
             "request": "launch",
             "servertype": "jlink",
-            "serverpath": "/opt/SEGGER/JLink/JLinkGDBServerCLExe",
+            "serverpath": "/Applications/SEGGER/JLink_V946/JLinkGDBServerCLExe",
             "device": "STM32H723ZG",
             "interface": "swd",
             "runToEntryPoint": "main",

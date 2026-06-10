@@ -14,7 +14,7 @@ make flash        # build then flash+verify+reset via J-Link
 make clean        # remove build directory
 ```
 
-`make flash` uses `JLinkExe` at `/opt/SEGGER/JLink/JLinkExe`. Override if needed:
+`make flash` uses `JLinkExe` at `/Applications/SEGGER/JLink_V946/JLinkExe`. Override if needed:
 
 ```bash
 make flash JLINK=/path/to/JLinkExe
@@ -26,7 +26,7 @@ make flash JLINK_SPD=1000     # default 4000 kHz
 
 ## VS Code Debug
 
-`.vscode/launch.json` is configured for **J-Link** (`serverpath: /opt/SEGGER/JLink/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector). Do not connect CN1 (ST-Link USB) at the same time — there are no CN2 jumpers on this board; ST-Link and J-Link would contend on the SWD lines. JP3 (T_NRST, 2-pin) must remain installed.
+`.vscode/launch.json` is configured for **J-Link** (`serverpath: /Applications/SEGGER/JLink_V946/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector). Do not connect CN1 (ST-Link USB) at the same time — there are no CN2 jumpers on this board; ST-Link and J-Link would contend on the SWD lines. JP3 (T_NRST, 2-pin) must remain installed.
 
 **Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
 - J-Link RTT (preferred — no UART, no pins, zero overhead)
