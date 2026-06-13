@@ -1,12 +1,10 @@
 // Ozone project file for F7Compressor
-// SEGGER Ozone V3.x
 
-Project.SetDevice("STM32H723ZG");
-Project.SetHostIF("USB", "");
-Project.SetTargetIF("SWD");
-Project.SetTIFSpeed("4 MHz");
-Project.SetSVDFile("$(ProjectDir)/STM32H723.svd");
-
-Project.SetStopAtMain(true);
-
-File.Open("$(ProjectDir)/build/F7Compressor.elf");
+void OnProjectLoad (void) {
+  Project.SetDevice ("STM32H723ZG");
+  Project.SetHostIF ("USB", "");
+  Project.SetTargetIF ("SWD");
+  Project.SetTIFSpeed ("4 MHz");
+  Project.AddSvdFile ("$(ProjectDir)/STM32H723.svd");
+  File.Open ("$(ProjectDir)/build/F7Compressor.elf");
+}
