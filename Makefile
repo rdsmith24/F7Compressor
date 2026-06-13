@@ -252,6 +252,25 @@ flash: all
 	printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nverifyfile $(BUILD_DIR)/$(TARGET).hex\nreset\nexit\n" > /tmp/jlink_flash.jlink
 	$(JLINK) -device $(JLINK_DEV) -if $(JLINK_IF) -speed $(JLINK_SPD) -autoconnect 1 -CommandFile /tmp/jlink_flash.jlink
 #######################################
+# cppcheck static analysis
+#######################################
+cppcheck:
+	cppcheck \
+	  --std=c17 \
+	  --platform=arm32-wchar_t4 \
+	  --enable=warning,style,performance,portability \
+	  --suppress=missingIncludeSystem \
+	  --suppress=missingInclude \
+	  "--suppress=*:Drivers/*" \
+	  --inline-suppr \
+	  -D__GNUC__ \
+	  $(C_DEFS) \
+	  $(C_INCLUDES) \
+	  -i BSP/Src/STLogo.c \
+	  -i BSP/Src/example.c \
+	  BSP/Src App/Src
+
+#######################################
 # dependencies
 #######################################
 -include $(wildcard $(BUILD_DIR)/*.d)
