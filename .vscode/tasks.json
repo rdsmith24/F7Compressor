@@ -22,5 +22,15 @@
             "command": "make",
             "args": ["flash"],
         },
+        {
+            "label": "Launch Ozone",
+            "type": "shell",
+            "command": "open",
+            "args": [
+                "-a", "/Applications/SEGGER/Ozone_V340j/Ozone.app",
+                "${workspaceFolder}/F7Compressor.jdebug"
+            ],
+            "problemMatcher": []
+        },
     ]
 }
