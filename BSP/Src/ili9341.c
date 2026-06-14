@@ -1,7 +1,7 @@
 	/*
  * ili9341.c
  *
- *  Created on: 22 ���. 2018 �.
+ *  Created on: 22 ���. 2018 �.
  *      Author: Andriy Honcharenko
  */
 #include <stdlib.h>
@@ -43,6 +43,7 @@ static unsigned char    lcdBuildMemoryAccessControlConfig(
                                 bool horizontalRefreshOrder);
 
 
+// Sends the full ILI9341 power-on sequence over FMC; call once after TIM3 PWM has started
 void lcdInit(void)
 {
   lcdPortraitConfig = lcdBuildMemoryAccessControlConfig(
@@ -79,24 +80,28 @@ void lcdInit(void)
 
   lcdReset();
 
-  lcdWriteCommand(ILI9341_DISPLAYOFF);
+  lcdWriteCommand(ILI9341_DISPLAYOFF); // display off while configuring registers
 
+  // Power Control B (0xCF) — undocumented extended register; sets power circuit enable bits
   lcdWriteCommand(0xCF);
   lcdWriteData(0x00);
   lcdWriteData(0x83);
   lcdWriteData(0x30);
 
+  // Power On Sequence Control (0xED) — soft-start timing and DDVDH enhance mode
   lcdWriteCommand(0xED);
   lcdWriteData(0x64);
   lcdWriteData(0x03);
   lcdWriteData(0x12);
   lcdWriteData(0x81);
 
+  // Driver Timing Control A (0xE8) — gate driver non-overlap, EQ, and pre-charge timing
   lcdWriteCommand(0xE8);
   lcdWriteData(0x85);
   lcdWriteData(0x01);
   lcdWriteData(0x79);
 
+  // Power Control A (0xCB) — VCore = 1.6V, DDVDH = 5.6V, reference voltage settings
   lcdWriteCommand(0xCB);
   lcdWriteData(0x39);
   lcdWriteData(0x2C);
@@ -104,42 +109,54 @@ void lcdInit(void)
   lcdWriteData(0x34);
   lcdWriteData(0x02);
 
+  // Pump Ratio Control (0xF7) — DDVDH = 2×VCI
   lcdWriteCommand(0xF7);
   lcdWriteData(0x20);
 
+  // Driver Timing Control B (0xEA) — VG SW timing
   lcdWriteCommand(0xEA);
   lcdWriteData(0x00);
   lcdWriteData(0x00);
 
+  // Power Control 1 (0xC0) — GVDD = 4.75V (output voltage regulation reference)
   lcdWriteCommand(ILI9341_POWERCONTROL1);
   lcdWriteData(0x26);
 
+  // Power Control 2 (0xC1) — step-up factor for VGH/VGL supply voltages
   lcdWriteCommand(ILI9341_POWERCONTROL2);
   lcdWriteData(0x11);
 
+  // VCOM Control 1 (0xC5) — VCOMH = 3.925V, VCOML = −0.950V
   lcdWriteCommand(ILI9341_VCOMCONTROL1);
   lcdWriteData(0x35);
   lcdWriteData(0x3E);
 
+  // VCOM Control 2 (0xC7) — VCOM offset voltage
   lcdWriteCommand(ILI9341_VCOMCONTROL2);
   lcdWriteData(0xBE);
 
+  // Memory Access Control (0x36) — scan direction, row/column order, BGR color order
   lcdWriteCommand(ILI9341_MEMCONTROL);
   lcdWriteData(lcdPortraitConfig);
 
+  // Pixel Format (0x3A) — 0x55 = 16 bits/pixel (RGB565) on both MCU and RGB interfaces
   lcdWriteCommand(ILI9341_PIXELFORMAT);
   lcdWriteData(0x55);
 
+  // Frame Rate Control — normal mode, fosc/1 division, ~70Hz
   lcdWriteCommand(ILI9341_FRAMECONTROLNORMAL);
   lcdWriteData(0x00);
   lcdWriteData(0x1B);
 
+  // 3-Gamma Function Enable (0xF2) — disabled (bit 0 = 0)
   lcdWriteCommand(0xF2);
   lcdWriteData(0x08);
 
+  // Gamma Curve Select (0x26) — use gamma curve G2.2
   lcdWriteCommand(ILI9341_GAMMASET);
   lcdWriteData(0x01);
 
+  // Positive Gamma Correction (0xE0) — 15-point LUT for positive polarity
   lcdWriteCommand(ILI9341_POSITIVEGAMMCORR);
   lcdWriteData(0x1F);
   lcdWriteData(0x1A);
@@ -157,6 +174,7 @@ void lcdInit(void)
   lcdWriteData(0x05);
   lcdWriteData(0x00);
 
+  // Negative Gamma Correction (0xE1) — 15-point LUT for negative polarity
   lcdWriteCommand(ILI9341_NEGATIVEGAMMCORR);
   lcdWriteData(0x00);
   lcdWriteData(0x25);
@@ -174,34 +192,39 @@ void lcdInit(void)
   lcdWriteData(0x3A);
   lcdWriteData(0x1F);
 
+  // Column Address Set (0x2A) — active column window: 0 to 239 (240px wide)
   lcdWriteCommand(ILI9341_COLADDRSET);
   lcdWriteData(0x00);
   lcdWriteData(0x00);
   lcdWriteData(0x00);
   lcdWriteData(0xEF);
 
+  // Page Address Set (0x2B) — active row window: 0 to 319 (320px tall)
   lcdWriteCommand(ILI9341_PAGEADDRSET);
   lcdWriteData(0x00);
   lcdWriteData(0x00);
   lcdWriteData(0x01);
   lcdWriteData(0x3F);
 
+  // Entry Mode Set (0xB7) — normal display, deep standby off, BESS=1
   lcdWriteCommand(ILI9341_ENTRYMODE);
   lcdWriteData(0x07);
 
+  // Display Function Control (0xB6) — scan direction, normally-black, 320 gate lines
   lcdWriteCommand(ILI9341_DISPLAYFUNC);
   lcdWriteData(0x0A);
   lcdWriteData(0x82);
   lcdWriteData(0x27);
   lcdWriteData(0x00);
 
-  lcdWriteCommand(ILI9341_SLEEPOUT);
+  lcdWriteCommand(ILI9341_SLEEPOUT);  // exit sleep mode; 100ms required for supply stabilisation
   HAL_Delay(100);
-  lcdWriteCommand(ILI9341_DISPLAYON);
+  lcdWriteCommand(ILI9341_DISPLAYON); // enable the display output
   HAL_Delay(100);
-  lcdWriteCommand(ILI9341_MEMORYWRITE);
+  lcdWriteCommand(ILI9341_MEMORYWRITE); // leave bus ready for pixel data writes
 }
 
+// Fills the display with 8 horizontal color bars for visual power-on verification
 void lcdTest(void)
 {
 	lcdSetWindow(0, 0, lcdProperties.width - 1, lcdProperties.height - 1);
@@ -224,6 +247,7 @@ void lcdTest(void)
 	}
 }
 
+// Fills the entire display with a single color
 void lcdFillRGB(uint16_t color)
 {
   lcdSetWindow(0, 0, lcdProperties.width - 1, lcdProperties.height - 1);
@@ -253,6 +277,7 @@ void lcdDrawPixel(uint16_t x, uint16_t y, uint16_t color)
     lcdWriteData(color);
 }
 
+// Draws a horizontal line from x0 to x1 at row y; swaps endpoints and clips to screen bounds
 void lcdDrawHLine(uint16_t x0, uint16_t x1, uint16_t y, uint16_t color)
 {
   // Allows for slightly better performance than setting individual pixels
@@ -282,6 +307,7 @@ void lcdDrawHLine(uint16_t x0, uint16_t x1, uint16_t y, uint16_t color)
 	}
 }
 
+// Draws a vertical line from y0 to y1 at column x; swaps endpoints and clips to screen bounds
 void lcdDrawVLine(uint16_t x, uint16_t y0, uint16_t y1, uint16_t color)
 {
   if (y1 < y0)
@@ -742,6 +768,7 @@ void lcdFillTriangle(int16_t x0, int16_t y0, int16_t x1, int16_t y1, int16_t x2,
     }
 }
 
+// Blits a GUI_BITMAP to (x, y); returns without drawing if the image extends off-screen
 void lcdDrawImage(uint16_t x, uint16_t y, GUI_CONST_STORAGE GUI_BITMAP* pBitmap)
 {
 	if((x >= lcdProperties.width) || (y >= lcdProperties.height)) return;
@@ -754,6 +781,7 @@ void lcdDrawImage(uint16_t x, uint16_t y, GUI_CONST_STORAGE GUI_BITMAP* pBitmap)
 	}
 }
 
+// Resets the text cursor to (0, 0) and opens a full-screen FMC write window
 void lcdHome(void)
 {
 	cursorXY.x = 0;
@@ -903,6 +931,7 @@ void lcdSetTextWrap(uint8_t w)
 	lcdFont.TextWrap = w;
 }
 
+// Writes MADCTL register and swaps lcdProperties width/height to match the new orientation
 void lcdSetOrientation(lcdOrientationTypeDef value)
 {
 	lcdProperties.orientation = value;
@@ -938,6 +967,7 @@ void lcdSetOrientation(lcdOrientationTypeDef value)
 	lcdSetWindow(0, 0, lcdProperties.width - 1, lcdProperties.height - 1);
 }
 
+// Moves the text cursor to (x, y); also opens a 1×1 FMC write window at that position
 void lcdSetCursor(unsigned short x, unsigned short y)
 {
 	cursorXY.x = x;
@@ -970,59 +1000,70 @@ void lcdSetWindow(unsigned short x0, unsigned short y0, unsigned short x1, unsig
   lcdWriteCommand(ILI9341_MEMORYWRITE);
 }
 
+// No-op: LCD_BL_OFF is ineffective while PC6 is in TIM3_CH1 alternate-function mode
 void lcdBacklightOff(void)
 {
 	LCD_BL_OFF();
 }
 
+// No-op: LCD_BL_ON is ineffective while PC6 is in TIM3_CH1 alternate-function mode
 void lcdBacklightOn(void)
 {
 	LCD_BL_ON();
 }
 
+// Disables display color inversion (INVOFF 0x20)
 void lcdInversionOff(void)
 {
 	lcdWriteCommand(ILI9341_INVERTOFF);
 }
 
+// Enables display color inversion (INVON 0x21)
 void lcdInversionOn(void)
 {
 	lcdWriteCommand(ILI9341_INVERTON);
 }
 
+// Sends DISPLAY OFF command and turns backlight off
 void lcdDisplayOff(void)
 {
 	lcdWriteCommand(ILI9341_DISPLAYOFF);
 	LCD_BL_OFF();
 }
 
+// Sends DISPLAY ON command and turns backlight on
 void lcdDisplayOn(void)
 {
 	lcdWriteCommand(ILI9341_DISPLAYON);
 	LCD_BL_ON();
 }
 
+// Disables the tearing effect output signal on the TE pin
 void lcdTearingOff(void)
 {
 	lcdWriteCommand(ILI9341_TEARINGEFFECTOFF);
 }
 
+// Enables the tearing effect output signal; m=0 V-blank only, m=1 V-blank + H-blank
 void lcdTearingOn(bool m)
 {
 	lcdWriteCommand(ILI9341_TEARINGEFFECTON);
 	lcdWriteData(m);
 }
 
+// Returns current logical display width (240 portrait, 320 landscape)
 uint16_t lcdGetWidth(void)
 {
   return lcdProperties.width;
 }
 
+// Returns current logical display height (320 portrait, 240 landscape)
 uint16_t lcdGetHeight(void)
 {
   return lcdProperties.height;
 }
 
+// Reads 16-bit controller ID from RDID4 (0xD3); first two bus reads are required dummy cycles
 uint16_t lcdGetControllerID(void)
 {
 	uint16_t id;
@@ -1034,16 +1075,19 @@ uint16_t lcdGetControllerID(void)
 	return id;
 }
 
+// Returns the currently active display orientation
 lcdOrientationTypeDef lcdGetOrientation(void)
 {
   return lcdProperties.orientation;
 }
 
+// Returns a pointer to the currently active font
 sFONT* lcdGetTextFont(void)
 {
 	return lcdFont.pFont;
 }
 
+// Returns a copy of the display properties struct (size, orientation, wrap flag)
 lcdPropertiesTypeDef lcdGetProperties(void)
 {
   return lcdProperties;
@@ -1081,6 +1125,7 @@ uint16_t lcdReadPixel(uint16_t x, uint16_t y)
     return lcdColor565((temp[1] >> 8) & 0xFF, temp[1] & 0xFF, (temp[2] >> 8) & 0xFF);
 }
 
+// Packs 8-bit R, G, B components into a 16-bit RGB565 word
 uint16_t lcdColor565(uint8_t r, uint8_t g, uint8_t b)
 {
 	return ((r & 0xF8) << 8) | ((g & 0xFC) << 3) | (b >> 3);
@@ -1088,6 +1133,7 @@ uint16_t lcdColor565(uint8_t r, uint8_t g, uint8_t b)
 
 /*---------Static functions--------------------------*/
 
+// Writes dataLength pixels from a buffer to a horizontal span starting at (x, y)
 static void lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataLength)
 {
   uint32_t i = 0;
@@ -1101,6 +1147,7 @@ static void lcdDrawPixels(uint16_t x, uint16_t y, uint16_t *data, uint32_t dataL
   while (i < dataLength);
 }
 
+// Issues a software reset command; hardware RST pin (PG2) is held HIGH and never toggled
 static void lcdReset(void)
 {
 	lcdWriteCommand(ILI9341_SOFTRESET);
@@ -1119,11 +1166,13 @@ static void lcdWriteData(unsigned short data)
 	LCD_DataWrite(data);
 }
 
+// Reads one 16-bit data word from the FMC data address
 static unsigned short lcdReadData(void)
 {
 	return LCD_DataRead();
 }
 
+// Builds the MADCTL byte (0x36) from individual scan-direction and color-order flags
 static unsigned char lcdBuildMemoryAccessControlConfig(
                         bool rowAddressOrder,
                         bool columnAddressOrder,
