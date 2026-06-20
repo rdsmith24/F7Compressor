@@ -6,6 +6,9 @@
 /* Latch initial pin states; call once at startup before the main loop */
 void DigIn_Init(void);
 
+/* Poll and debounce the oil-pressure switch; call once per main-loop iteration */
+void DigIn_Update(void);
+
 /* Return true if the oil pressure switch NC contact is closed (oil pressure OK) */
 bool DigIn_IsOilPressureOK(void);
 

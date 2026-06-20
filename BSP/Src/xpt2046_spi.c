@@ -6,6 +6,9 @@
 #define CMD_READ_X   0xD0u
 #define CMD_READ_Y   0x90u
 #define SAMPLES      8u
+/* Max time for a single SPI transfer before we give up (a wedged controller
+   must not be allowed to hang the main loop, which drives the safety logic) */
+#define SPI_TIMEOUT_MS  5u
 
 static volatile bool s_irq_flag = false;
 
@@ -28,38 +31,58 @@ static void cs_high(void)
  * tx may be NULL to send dummy bytes; rx may be NULL to discard received bytes.
  * Follows the STM32H7 LL pattern: SetTransferSize → Enable → StartMasterTransfer
  * → byte loop → wait EOT → clear flags → Disable.
+ *
+ * Returns false (and leaves SPI5 disabled) if any flag wait exceeds
+ * SPI_TIMEOUT_MS, so a stalled bus can never hang the caller.
  */
-static void spi_xfer(const uint8_t *tx, uint8_t *rx, uint16_t len)
+static bool spi_xfer(const uint8_t *tx, uint8_t *rx, uint16_t len)
 {
     LL_SPI_SetTransferSize(SPI5, len);
     LL_SPI_Enable(SPI5);
     LL_SPI_StartMasterTransfer(SPI5);
 
+    uint32_t start = HAL_GetTick();
+
     for (uint16_t i = 0; i < len; i++) {
-        while (!LL_SPI_IsActiveFlag_TXP(SPI5));
+        while (!LL_SPI_IsActiveFlag_TXP(SPI5)) {
+            if ((HAL_GetTick() - start) > SPI_TIMEOUT_MS) goto timeout;
+        }
         LL_SPI_TransmitData8(SPI5, tx ? tx[i] : 0x00u);
-        while (!LL_SPI_IsActiveFlag_RXP(SPI5));
+        while (!LL_SPI_IsActiveFlag_RXP(SPI5)) {
+            if ((HAL_GetTick() - start) > SPI_TIMEOUT_MS) goto timeout;
+        }
         uint8_t d = LL_SPI_ReceiveData8(SPI5);
         if (rx) rx[i] = d;
     }
 
-    while (!LL_SPI_IsActiveFlag_EOT(SPI5));
+    while (!LL_SPI_IsActiveFlag_EOT(SPI5)) {
+        if ((HAL_GetTick() - start) > SPI_TIMEOUT_MS) goto timeout;
+    }
     LL_SPI_ClearFlag_EOT(SPI5);
     LL_SPI_ClearFlag_TXTF(SPI5);
     LL_SPI_Disable(SPI5);
+    return true;
+
+timeout:
+    LL_SPI_ClearFlag_EOT(SPI5);
+    LL_SPI_ClearFlag_TXTF(SPI5);
+    LL_SPI_Disable(SPI5);
+    return false;
 }
 
 /*
- * Send a 3-byte read command to the XPT2046 and return the 12-bit result.
+ * Send a 3-byte read command to the XPT2046 and write the 12-bit result to *out.
  * CS must already be asserted by the caller.
  * Bit layout: rx[1][6:0] = bits 11:5, rx[2][7:3] = bits 4:0.
+ * Returns false if the SPI transfer timed out (*out left unchanged).
  */
-static uint16_t read_channel(uint8_t cmd)
+static bool read_channel(uint8_t cmd, uint16_t *out)
 {
     uint8_t tx[3] = { cmd, 0x00u, 0x00u };
     uint8_t rx[3];
-    spi_xfer(tx, rx, 3);
-    return (uint16_t)(((rx[1] & 0x7Fu) << 5) | (rx[2] >> 3));
+    if (!spi_xfer(tx, rx, 3)) return false;
+    *out = (uint16_t)(((rx[1] & 0x7Fu) << 5) | (rx[2] >> 3));
+    return true;
 }
 
 /* ── Public API ───────────────────────────────────────────────────────────── */
@@ -93,8 +116,15 @@ bool XPT2046_Read(Touch_t *touch)
     uint32_t sum_x = 0, sum_y = 0;
     cs_low();
     for (uint8_t i = 0; i < SAMPLES; i++) {
-        sum_x += read_channel(CMD_READ_X);
-        sum_y += read_channel(CMD_READ_Y);
+        uint16_t vx, vy;
+        if (!read_channel(CMD_READ_X, &vx) || !read_channel(CMD_READ_Y, &vy)) {
+            /* SPI transfer timed out — abort this read, don't hang the loop */
+            cs_high();
+            touch->pressed = false;
+            return false;
+        }
+        sum_x += vx;
+        sum_y += vy;
     }
     cs_high();
 

@@ -34,6 +34,44 @@ static bool validate(const Settings_t *s)
     return (s->magic == SETTINGS_MAGIC) && (s->checksum == compute_checksum(s));
 }
 
+static uint16_t clamp_u16(uint16_t v, uint16_t lo, uint16_t hi)
+{
+    if (v < lo) return lo;
+    if (v > hi) return hi;
+    return v;
+}
+
+/*
+ * Clamp every field to its valid range and enforce the ordering the state
+ * machine relies on. The UI enforces these bounds when editing, but a
+ * checksum-valid struct in flash (e.g. after a future layout change, or
+ * corruption that happens to collide) could otherwise feed SM_Update() values
+ * that underflow (max − span) or violate the high_high ≥ high_alarm ≥ max
+ * priority assumption. Ranges mirror row_min/row_max in ui_settings.c.
+ */
+static void clamp_settings(Settings_t *s)
+{
+    s->oil_pressure_delay_s    = clamp_u16(s->oil_pressure_delay_s,    1u, 60u);
+    s->pressure_min_psi        = clamp_u16(s->pressure_min_psi,        0u, 150u);
+    s->pressure_max_psi        = clamp_u16(s->pressure_max_psi,        10u, 200u);
+    s->pressure_span_psi       = clamp_u16(s->pressure_span_psi,       1u, 50u);
+    s->auto_restart_en         = (s->auto_restart_en != 0u) ? 1u : 0u;
+    s->pressure_high_alarm_psi = clamp_u16(s->pressure_high_alarm_psi, 10u, 220u);
+    s->pressure_high_high_psi  = clamp_u16(s->pressure_high_high_psi,  10u, 230u);
+
+    /* span must stay below max so cut-in = (max − span) cannot underflow */
+    if (s->pressure_span_psi >= s->pressure_max_psi) {
+        s->pressure_span_psi = (uint16_t)(s->pressure_max_psi - 1u);
+    }
+    /* SM_RUNNING checks assume high_high ≥ high_alarm ≥ max */
+    if (s->pressure_high_alarm_psi < s->pressure_max_psi) {
+        s->pressure_high_alarm_psi = s->pressure_max_psi;
+    }
+    if (s->pressure_high_high_psi < s->pressure_high_alarm_psi) {
+        s->pressure_high_high_psi = s->pressure_high_alarm_psi;
+    }
+}
+
 /*
  * Load settings from flash sector 7. If the sector is blank or the
  * checksum fails, the compiled-in defaults are used instead and the
@@ -50,6 +88,9 @@ void Settings_Init(void)
         def.checksum   = compute_checksum(&def);
         s_settings     = def;
     }
+
+    /* Guarantee the live config is self-consistent regardless of flash contents */
+    clamp_settings(&s_settings);
 }
 
 /*
@@ -93,6 +134,9 @@ bool Settings_Save(const Settings_t *s)
         .NbSectors    = 1u,
         .VoltageRange = FLASH_VOLTAGE_RANGE_3,
     };
+    /* Refresh the watchdog: a 128 KB sector erase blocks long enough to matter */
+    IWDG1->KR = 0x0000AAAAu;
+
     uint32_t sector_error = 0;
     if (HAL_FLASHEx_Erase(&erase, &sector_error) != HAL_OK) {
         HAL_FLASH_Lock();

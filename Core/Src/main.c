@@ -135,6 +135,28 @@ int main(void)
   MX_TIM3_Init();
   /* USER CODE BEGIN 2 */
 
+  /*
+   * Independent watchdog (IWDG1) — safety net for a hung superloop, which would
+   * otherwise leave the run relay frozen in its last state. LSI ≈ 32 kHz,
+   * prescaler /32 → 1 kHz tick, reload 1999 → ~2 s timeout. Refreshed once per
+   * loop iteration (USER CODE 3) and around the flash erase in Settings_Save().
+   * Driven via registers because no LL/HAL IWDG driver is bundled in this tree.
+   * Freeze it while the core is halted under the debugger so breakpoints don't
+   * trigger spurious resets (no effect in the field with no debugger attached).
+   */
+  LL_DBGMCU_APB4_GRP1_FreezePeriph(LL_DBGMCU_APB4_GRP1_IWDG1_STOP);
+  IWDG1->KR  = 0x0000CCCCu;   /* start the watchdog (also starts LSI) */
+  IWDG1->KR  = 0x00005555u;   /* enable write access to PR/RLR */
+  IWDG1->PR  = 0x03u;         /* prescaler /32 → 1 kHz counter clock */
+  IWDG1->RLR = 1999u;         /* reload value → ~2 s timeout */
+  {
+      uint32_t iwdg_start = HAL_GetTick();
+      while (IWDG1->SR != 0u) {           /* wait for PR/RLR writes to apply */
+          if ((HAL_GetTick() - iwdg_start) > 10u) break;
+      }
+  }
+  IWDG1->KR  = 0x0000AAAAu;   /* refresh (re-locks write access) */
+
   /* Heartbeat LED: LD1 Green (PB0) — init early so it blinks even if later init hangs */
   LL_AHB4_GRP1_EnableClock(LL_AHB4_GRP1_PERIPH_GPIOB);
   LL_GPIO_SetPinMode(GPIOB, LL_GPIO_PIN_0, LL_GPIO_MODE_OUTPUT);
@@ -191,6 +213,9 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
+    /* Refresh the watchdog — if the loop stalls past ~2 s the MCU resets */
+    IWDG1->KR = 0x0000AAAAu;
+
     /* Heartbeat: toggle LD1 green (PB0) at 1 Hz */
     if (HAL_GetTick() - led_tick >= 500u) {
         led_tick = HAL_GetTick();
@@ -208,7 +233,8 @@ int main(void)
     /* Relay dead-time management */
     Relay_Update();
 
-    /* Synchronise digital-input state to SM */
+    /* Debounce the oil switch, then synchronise digital-input state to SM */
+    DigIn_Update();
     SM_SetOilSwitch(DigIn_IsOilPressureOK());
     SM_SetEStop(DigIn_IsEStopActive());
     if (DigIn_ConsumeEStopReset()) {

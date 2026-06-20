@@ -4,6 +4,10 @@
 static uint16_t s_psi   = 0;
 static bool     s_fault = false;
 
+/* Max time to wait for a single conversion / for the ADC to come ready at init */
+#define PADC_SAMPLE_TIMEOUT_MS  10u
+#define PADC_INIT_TIMEOUT_MS    100u
+
 /*
  * Calibrate and enable ADC1. Must be called once at startup, before the
  * first PADC_Sample() call. Calibration must run before the ADC is enabled —
@@ -11,13 +15,27 @@ static bool     s_fault = false;
  */
 void PADC_Init(void)
 {
+    uint32_t start;
+
     LL_ADC_StartCalibration(ADC1, LL_ADC_CALIB_OFFSET, LL_ADC_SINGLE_ENDED);
-    while (LL_ADC_IsCalibrationOnGoing(ADC1));
+    start = HAL_GetTick();
+    while (LL_ADC_IsCalibrationOnGoing(ADC1)) {
+        if ((HAL_GetTick() - start) > PADC_INIT_TIMEOUT_MS) {
+            s_fault = true;   /* ADC failed to calibrate — don't hang boot */
+            return;
+        }
+    }
 
     HAL_Delay(1);   /* wait for internal regulator after calibration */
 
     LL_ADC_Enable(ADC1);
-    while (!LL_ADC_IsActiveFlag_ADRDY(ADC1));
+    start = HAL_GetTick();
+    while (!LL_ADC_IsActiveFlag_ADRDY(ADC1)) {
+        if ((HAL_GetTick() - start) > PADC_INIT_TIMEOUT_MS) {
+            s_fault = true;   /* ADC never became ready — don't hang boot */
+            return;
+        }
+    }
 }
 
 /*
@@ -34,9 +52,9 @@ bool PADC_Sample(void)
 {
     LL_ADC_REG_StartConversion(ADC1);
 
-    uint32_t timeout = HAL_GetTick() + 10u;
+    uint32_t start = HAL_GetTick();
     while (!LL_ADC_IsActiveFlag_EOC(ADC1)) {
-        if (HAL_GetTick() > timeout) {
+        if ((HAL_GetTick() - start) > PADC_SAMPLE_TIMEOUT_MS) {
             s_fault = true;
             return false;
         }
