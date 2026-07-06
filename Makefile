@@ -243,7 +243,7 @@ clean:
 ####################################
 # J-Link flash
 ####################################
-JLINK     ?= /Applications/SEGGER/JLink_V946/JLinkExe
+JLINK     ?= /Applications/SEGGER/JLink_V956/JLinkExe
 JLINK_DEV ?= STM32H723ZG
 JLINK_IF  ?= SWD
 JLINK_SPD ?= 4000
