@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make -j4)",
+      "Bash(make clean *)",
+      "Bash(arm-none-eabi-objdump -d /Users/rdsmith/LocalSourceCode/F7Compressor/build/ili9341.o)",
+      "WebSearch",
+      "WebFetch(domain:www.manualslib.com)",
+      "WebFetch(domain:www.st.com)",
+      "Bash(make -C /home/rdsmith24/Documents/sourcecode/F7Compressor -j4)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(arm-none-eabi-nm build/F7Compressor.elf)",
+      "Bash(arm-none-eabi-addr2line *)",
+      "WebFetch(domain:manualzz.com)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:download.kamami.pl)",
+      "Read(//usr/local/bin/**)",
+      "Read(//opt/homebrew/bin/**)",
+      "Bash(make flash *)",
+      "Bash(cppcheck --version)",
+      "Bash(make cppcheck *)",
+      "Bash(git rm *)"
+    ]
+  }
+}

@@ -25,7 +25,7 @@
         {
             "label": "Launch Ozone",
             "type": "shell",
-            "command": "/Applications/SEGGER/Ozone_V350/Ozone.app/Contents/MacOS/Ozone",
+            "command": "/Applications/SEGGER/Ozone/Ozone.app/Contents/MacOS/Ozone",
             "args": [
                 "${workspaceFolder}/F7Compressor.jdebug"
             ],

@@ -1,0 +1,887 @@
+<!title>NUCLEO-H723ZG → Waveshare 3.2" LCD Wiring</title>
+<style>
+/* ── Token system ─────────────────────────────────────── */
+:root {
+  --bg:        #F4F6FA;
+  --surface:   #FFFFFF;
+  --surface2:  #EEF1F7;
+  --border:    #D0D6E4;
+  --text:      #1A1E2D;
+  --muted:     #6B7898;
+  --code-bg:   #E8ECF5;
+
+  --c-data:    #2563EB;   /* FMC 16-bit data bus — blue */
+  --c-ctrl:    #0891B2;   /* FMC control — cyan */
+  --c-spi:     #7C3AED;   /* SPI5 touch — purple */
+  --c-pwr:     #DC2626;   /* 3.3V power — red */
+  --c-gnd:     #16A34A;   /* GND — green */
+  --c-gpio:    #BE185D;   /* GPIO/PWM — pink */
+  --c-warn:    #D97706;   /* Morpho / warning — amber */
+
+  --row-data:  #EFF6FF;
+  --row-ctrl:  #ECFEFF;
+  --row-spi:   #F5F3FF;
+  --row-pwr:   #FEF2F2;
+  --row-gnd:   #F0FDF4;
+  --row-gpio:  #FDF2F8;
+  --row-warn:  #FFFBEB;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:       #0C0F1A;
+    --surface:  #131726;
+    --surface2: #1A1F30;
+    --border:   #252D42;
+    --text:     #DDE3F0;
+    --muted:    #5A6580;
+    --code-bg:  #1E2438;
+
+    --c-data:   #60A5FA;
+    --c-ctrl:   #22D3EE;
+    --c-spi:    #C084FC;
+    --c-pwr:    #F87171;
+    --c-gnd:    #4ADE80;
+    --c-gpio:   #F472B6;
+    --c-warn:   #FBBF24;
+
+    --row-data:  #1E2A3F;
+    --row-ctrl:  #192835;
+    --row-spi:   #251D40;
+    --row-pwr:   #2D1515;
+    --row-gnd:   #152D1E;
+    --row-gpio:  #2D1526;
+    --row-warn:  #2D2510;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg:       #F4F6FA;
+  --surface:  #FFFFFF;
+  --surface2: #EEF1F7;
+  --border:   #D0D6E4;
+  --text:     #1A1E2D;
+  --muted:    #6B7898;
+  --code-bg:  #E8ECF5;
+  --c-data:   #2563EB;
+  --c-ctrl:   #0891B2;
+  --c-spi:    #7C3AED;
+  --c-pwr:    #DC2626;
+  --c-gnd:    #16A34A;
+  --c-gpio:   #BE185D;
+  --c-warn:   #D97706;
+  --row-data:  #EFF6FF;
+  --row-ctrl:  #ECFEFF;
+  --row-spi:   #F5F3FF;
+  --row-pwr:   #FEF2F2;
+  --row-gnd:   #F0FDF4;
+  --row-gpio:  #FDF2F8;
+  --row-warn:  #FFFBEB;
+}
+
+:root[data-theme="dark"] {
+  --bg:       #0C0F1A;
+  --surface:  #131726;
+  --surface2: #1A1F30;
+  --border:   #252D42;
+  --text:     #DDE3F0;
+  --muted:    #5A6580;
+  --code-bg:  #1E2438;
+  --c-data:   #60A5FA;
+  --c-ctrl:   #22D3EE;
+  --c-spi:    #C084FC;
+  --c-pwr:    #F87171;
+  --c-gnd:    #4ADE80;
+  --c-gpio:   #F472B6;
+  --c-warn:   #FBBF24;
+  --row-data:  #1E2A3F;
+  --row-ctrl:  #192835;
+  --row-spi:   #251D40;
+  --row-pwr:   #2D1515;
+  --row-gnd:   #152D1E;
+  --row-gpio:  #2D1526;
+  --row-warn:  #2D2510;
+}
+
+/* ── Base ─────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 28px 32px 48px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Header ───────────────────────────────────────────── */
+.page-header {
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+h1 {
+  font-size: 1.35rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+h1 span.arrow {
+  color: var(--c-ctrl);
+  font-weight: 400;
+}
+
+.subtitle {
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  letter-spacing: 0.02em;
+}
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 14px 0 20px;
+}
+
+/* ── Legend ───────────────────────────────────────────── */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-bottom: 20px;
+}
+
+.leg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+.leg-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* ── Warning callout ──────────────────────────────────── */
+.callout {
+  background: var(--row-warn);
+  border: 1px solid var(--c-warn);
+  border-left: 4px solid var(--c-warn);
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin-bottom: 24px;
+  font-size: 0.82rem;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.callout strong {
+  color: var(--c-warn);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* ── Section headers ──────────────────────────────────── */
+.section-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 24px 0 8px;
+}
+
+.section-bar {
+  width: 4px;
+  height: 18px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.section-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.section-count {
+  font-size: 0.7rem;
+  color: var(--muted);
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  opacity: 0.6;
+}
+
+/* ── Tables ───────────────────────────────────────────── */
+.tbl-wrap { overflow-x: auto; }
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+thead tr {
+  background: var(--surface2);
+}
+
+th {
+  padding: 7px 10px;
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 2px solid var(--border);
+  white-space: nowrap;
+}
+
+td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+  line-height: 1.4;
+}
+
+tr:last-child td { border-bottom: none; }
+
+tbody tr:hover td { filter: brightness(0.97); }
+:root[data-theme="dark"] tbody tr:hover td,
+@media (prefers-color-scheme: dark) { tbody tr:hover td { filter: brightness(1.06); } }
+
+/* Signal type row coloring via data-sig attribute */
+tr[data-sig="data"]  { background: var(--row-data); }
+tr[data-sig="ctrl"]  { background: var(--row-ctrl); }
+tr[data-sig="spi"]   { background: var(--row-spi); }
+tr[data-sig="pwr"]   { background: var(--row-pwr); }
+tr[data-sig="gnd"]   { background: var(--row-gnd); }
+tr[data-sig="gpio"]  { background: var(--row-gpio); }
+tr[data-sig="warn"]  { background: var(--row-warn); }
+
+/* Left accent stripe */
+tr[data-sig] td:first-child {
+  border-left: 3px solid transparent;
+}
+tr[data-sig="data"]  td:first-child { border-left-color: var(--c-data); }
+tr[data-sig="ctrl"]  td:first-child { border-left-color: var(--c-ctrl); }
+tr[data-sig="spi"]   td:first-child { border-left-color: var(--c-spi); }
+tr[data-sig="pwr"]   td:first-child { border-left-color: var(--c-pwr); }
+tr[data-sig="gnd"]   td:first-child { border-left-color: var(--c-gnd); }
+tr[data-sig="gpio"]  td:first-child { border-left-color: var(--c-gpio); }
+tr[data-sig="warn"]  td:first-child { border-left-color: var(--c-warn); }
+
+/* Code / monospace */
+code {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-size: 0.88em;
+  background: var(--code-bg);
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.pin-num {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88em;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.morpho-star {
+  color: var(--c-warn);
+  font-weight: 700;
+}
+
+/* ── LCD Pinout quick-ref ─────────────────────────────── */
+.pinout-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.pin-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 0.72rem;
+}
+
+.pin-cell[data-sig="data"]  { border-left-color: var(--c-data); }
+.pin-cell[data-sig="ctrl"]  { border-left-color: var(--c-ctrl); }
+.pin-cell[data-sig="spi"]   { border-left-color: var(--c-spi); }
+.pin-cell[data-sig="pwr"]   { border-left-color: var(--c-pwr); }
+.pin-cell[data-sig="gnd"]   { border-left-color: var(--c-gnd); }
+.pin-cell[data-sig="gpio"]  { border-left-color: var(--c-gpio); }
+.pin-cell[data-sig="warn"]  { border-left-color: var(--c-warn); }
+.pin-cell[data-sig="nc"]    { opacity: 0.4; }
+
+.pin-n {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 20px;
+  font-size: 0.75rem;
+}
+
+.pin-sig {
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pin-mcu {
+  font-size: 0.66rem;
+  color: var(--muted);
+  margin-left: auto;
+  white-space: nowrap;
+  font-family: ui-monospace, 'Cascadia Code', 'Consolas', monospace;
+}
+
+/* ── Notes section ────────────────────────────────────── */
+.notes {
+  margin-top: 28px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 18px;
+}
+
+.notes h3 {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+
+.notes ul {
+  list-style: none;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  gap: 5px 28px;
+}
+
+.notes li {
+  font-size: 0.78rem;
+  color: var(--muted);
+  padding-left: 12px;
+  position: relative;
+  line-height: 1.5;
+}
+
+.notes li::before {
+  content: '·';
+  position: absolute;
+  left: 0;
+  color: var(--muted);
+}
+
+.notes li code {
+  font-size: 0.82em;
+}
+
+@media (prefers-color-scheme: dark) {
+  tbody tr:hover td { filter: brightness(1.06); }
+}
+
+@media print {
+  body { padding: 12px; background: white; color: black; }
+  :root { --bg: white; --surface: white; --surface2: #f5f5f5; --border: #ccc; --text: black; --muted: #666; --code-bg: #f0f0f0; }
+  .callout { border-color: #d97706; }
+}
+</style>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  PAGE HEADER                                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="page-header">
+  <h1>NUCLEO-H723ZG <span class="arrow">→</span> Waveshare 3.2" LCD</h1>
+  <span class="subtitle">ILI9341 display · XPT2046 touch · F7Compressor firmware</span>
+</div>
+<div class="divider"></div>
+
+<!-- ── Legend ──────────────────────────────────────────── -->
+<div class="legend">
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-data)"></div>FMC data bus (D0–D15)</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-ctrl)"></div>FMC control (RS, CS, RD, WR)</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-gpio)"></div>GPIO / PWM (RST, BL)</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-spi)"></div>SPI5 touch (XPT2046)</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-pwr)"></div>3.3 V power</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-gnd)"></div>GND</div>
+  <div class="leg"><div class="leg-swatch" style="background:var(--c-warn)"></div>★ Morpho — solder header required</div>
+</div>
+
+<!-- ── Morpho warning ──────────────────────────────────── -->
+<div class="callout">
+  <strong>★ Morpho connectors CN11 / CN12 are unpopulated from factory.</strong>
+  You must solder a male pin header to access pins
+  <strong>CN12-P10</strong> (FMC_D13 / PD8),
+  <strong>CN11-P69</strong> (FMC_D14 / PD9), and
+  <strong>CN12-P65</strong> (FMC_D15 / PD10).
+  All other signals use the pre-populated Zio/Arduino headers (CN7–CN10).
+  Do not connect CN1 (ST-Link USB) and J-Link simultaneously — they contend on SWD.
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  TABLE 1: FMC CONTROL SIGNALS                          -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label">
+  <div class="section-bar" style="background:var(--c-ctrl)"></div>
+  <span class="section-title">FMC Control Signals</span>
+  <span class="section-count">4 wires · CN7, CN8, CN9</span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>MCU Pin</th>
+      <th>NUCLEO Connector</th>
+      <th>FMC Signal</th>
+      <th>LCD Label</th>
+      <th>LCD Pin</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-sig="ctrl">
+      <td><code>PF0</code></td>
+      <td>CN9 pin 21</td>
+      <td>FMC_A0 AF12</td>
+      <td><strong>RS</strong> (cmd/data)</td>
+      <td><span class="pin-num">20</span></td>
+      <td>Addr bit 0: 0x60000000 = cmd, 0x60000002 = data</td>
+    </tr>
+    <tr data-sig="ctrl">
+      <td><code>PD7</code></td>
+      <td>CN9 pin 2</td>
+      <td>FMC_NE1 AF12</td>
+      <td><strong>CS</strong></td>
+      <td><span class="pin-num">19</span></td>
+      <td>Bank 1 chip select, active LOW</td>
+    </tr>
+    <tr data-sig="ctrl">
+      <td><code>PD4</code></td>
+      <td>CN9 pin 8</td>
+      <td>FMC_NOE AF12</td>
+      <td><strong>RD</strong></td>
+      <td><span class="pin-num">22</span></td>
+      <td>Read strobe</td>
+    </tr>
+    <tr data-sig="ctrl">
+      <td><code>PD5</code></td>
+      <td>CN9 pin 6</td>
+      <td>FMC_NWE AF12</td>
+      <td><strong>WR</strong></td>
+      <td><span class="pin-num">21</span></td>
+      <td>Write strobe</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  TABLE 2: GPIO / PWM                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label">
+  <div class="section-bar" style="background:var(--c-gpio)"></div>
+  <span class="section-title">GPIO / PWM</span>
+  <span class="section-count">2 wires · CN7, CN8</span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>MCU Pin</th>
+      <th>NUCLEO Connector</th>
+      <th>Signal</th>
+      <th>LCD Label</th>
+      <th>LCD Pin</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-sig="gpio">
+      <td><code>PG2</code></td>
+      <td>CN8 pin 14</td>
+      <td>GPIO out</td>
+      <td><strong>RST</strong></td>
+      <td><span class="pin-num">23</span></td>
+      <td>Held HIGH at init; library uses software reset only (0x01 cmd)</td>
+    </tr>
+    <tr data-sig="gpio">
+      <td><code>PC6</code></td>
+      <td>CN7 pin 1</td>
+      <td>TIM3_CH1 AF2</td>
+      <td><strong>BL</strong></td>
+      <td><span class="pin-num">27</span></td>
+      <td>1 kHz PWM 75% duty — LCD_BL_ON/OFF macros are ineffective (AF mode)</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  TABLE 3: FMC DATA BUS                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label">
+  <div class="section-bar" style="background:var(--c-data)"></div>
+  <span class="section-title">FMC 16-bit Data Bus</span>
+  <span class="section-count">16 wires · CN7, CN9, CN10, CN11★, CN12★</span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>MCU Pin</th>
+      <th>NUCLEO Connector</th>
+      <th>FMC Signal</th>
+      <th>LCD Label</th>
+      <th>LCD Pin</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-sig="data">
+      <td><code>PD14</code></td>
+      <td>CN7 pin 14</td>
+      <td>FMC_D0 AF12</td>
+      <td><strong>D0</strong></td>
+      <td><span class="pin-num">1</span></td>
+      <td rowspan="2">LCD pins 2 and 3 are GND — leave unconnected or tie to GND</td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PD15</code></td>
+      <td>CN7 pin 16</td>
+      <td>FMC_D1 AF12</td>
+      <td><strong>D1</strong></td>
+      <td><span class="pin-num">4</span></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PD0</code></td>
+      <td>CN9 pin 23</td>
+      <td>FMC_D2 AF12</td>
+      <td><strong>D2</strong></td>
+      <td><span class="pin-num">5</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PD1</code></td>
+      <td>CN9 pin 25</td>
+      <td>FMC_D3 AF12</td>
+      <td><strong>D3</strong></td>
+      <td><span class="pin-num">6</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE7</code></td>
+      <td>CN10 pin 20</td>
+      <td>FMC_D4 AF12</td>
+      <td><strong>D4</strong></td>
+      <td><span class="pin-num">7</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE8</code></td>
+      <td>CN10 pin 18</td>
+      <td>FMC_D5 AF12</td>
+      <td><strong>D5</strong></td>
+      <td><span class="pin-num">8</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE9</code></td>
+      <td>CN10 pin 4</td>
+      <td>FMC_D6 AF12</td>
+      <td><strong>D6</strong></td>
+      <td><span class="pin-num">9</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE10</code></td>
+      <td>CN10 pin 24</td>
+      <td>FMC_D7 AF12</td>
+      <td><strong>D7</strong></td>
+      <td><span class="pin-num">10</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE11</code></td>
+      <td>CN10 pin 6</td>
+      <td>FMC_D8 AF12</td>
+      <td><strong>D8</strong></td>
+      <td><span class="pin-num">11</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE12</code></td>
+      <td>CN10 pin 26</td>
+      <td>FMC_D9 AF12</td>
+      <td><strong>D9</strong></td>
+      <td><span class="pin-num">12</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE13</code></td>
+      <td>CN10 pin 10</td>
+      <td>FMC_D10 AF12</td>
+      <td><strong>D10</strong></td>
+      <td><span class="pin-num">13</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE14</code></td>
+      <td>CN10 pin 8</td>
+      <td>FMC_D11 AF12</td>
+      <td><strong>D11</strong></td>
+      <td><span class="pin-num">14</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="data">
+      <td><code>PE15</code></td>
+      <td>CN10 pin 30</td>
+      <td>FMC_D12 AF12</td>
+      <td><strong>D12</strong></td>
+      <td><span class="pin-num">15</span></td>
+      <td></td>
+    </tr>
+    <tr data-sig="warn">
+      <td><code>PD8</code></td>
+      <td>CN12 pin 10 <span class="morpho-star">★</span></td>
+      <td>FMC_D13 AF12</td>
+      <td><strong>D13</strong></td>
+      <td><span class="pin-num">16</span></td>
+      <td><span class="morpho-star">★ Morpho</span> — solder male header to CN12 first</td>
+    </tr>
+    <tr data-sig="warn">
+      <td><code>PD9</code></td>
+      <td>CN11 pin 69 <span class="morpho-star">★</span></td>
+      <td>FMC_D14 AF12</td>
+      <td><strong>D14</strong></td>
+      <td><span class="pin-num">17</span></td>
+      <td><span class="morpho-star">★ Morpho</span> — solder male header to CN11 first</td>
+    </tr>
+    <tr data-sig="warn">
+      <td><code>PD10</code></td>
+      <td>CN12 pin 65 <span class="morpho-star">★</span></td>
+      <td>FMC_D15 AF12</td>
+      <td><strong>D15</strong></td>
+      <td><span class="pin-num">18</span></td>
+      <td><span class="morpho-star">★ Morpho</span> — solder male header to CN12 first</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  TABLE 4: POWER & GND                                  -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label">
+  <div class="section-bar" style="background:var(--c-pwr)"></div>
+  <span class="section-title">Power &amp; Ground</span>
+  <span class="section-count">4 wires (1× 3.3V + 3× GND)</span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>Source</th>
+      <th>NUCLEO Connector</th>
+      <th>LCD Label</th>
+      <th>LCD Pin</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-sig="pwr">
+      <td>3.3 V (onboard LDO)</td>
+      <td>CN7 pin 16 or CN8 pin 7</td>
+      <td><strong>VCC-3V3</strong></td>
+      <td><span class="pin-num">33</span></td>
+      <td>NUCLEO 3.3V rail — do not use 5V here</td>
+    </tr>
+    <tr data-sig="gnd">
+      <td>GND</td>
+      <td>CN9 pin 12 (or any GND)</td>
+      <td><strong>GND</strong></td>
+      <td><span class="pin-num">2</span></td>
+      <td rowspan="3">Three GND pins on LCD — wire all three or at minimum pin 34</td>
+    </tr>
+    <tr data-sig="gnd">
+      <td>GND</td>
+      <td>any GND</td>
+      <td><strong>GND</strong></td>
+      <td><span class="pin-num">3</span></td>
+    </tr>
+    <tr data-sig="gnd">
+      <td>GND</td>
+      <td>any GND</td>
+      <td><strong>GND</strong></td>
+      <td><span class="pin-num">34</span></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  TABLE 5: SPI5 TOUCH                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label">
+  <div class="section-bar" style="background:var(--c-spi)"></div>
+  <span class="section-title">SPI5 Touch Controller (XPT2046)</span>
+  <span class="section-count">5 wires · CN8, CN9</span>
+</div>
+
+<div class="tbl-wrap">
+<table>
+  <thead>
+    <tr>
+      <th>MCU Pin</th>
+      <th>NUCLEO Connector</th>
+      <th>SPI Signal</th>
+      <th>LCD Label</th>
+      <th>LCD Pin</th>
+      <th>Note</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr data-sig="spi">
+      <td><code>PF7</code></td>
+      <td>CN9 pin 26</td>
+      <td>SPI5_SCK AF5</td>
+      <td><strong>TP_SCK</strong></td>
+      <td><span class="pin-num">30</span></td>
+      <td>~1.9 MHz (120 MHz PCLK2 ÷ 64)</td>
+    </tr>
+    <tr data-sig="spi">
+      <td><code>PF8</code></td>
+      <td>CN9 pin 24</td>
+      <td>SPI5_MISO AF5</td>
+      <td><strong>TP_SDO</strong> (DOUT)</td>
+      <td><span class="pin-num">32</span></td>
+      <td>Touch ADC data out → MCU</td>
+    </tr>
+    <tr data-sig="spi">
+      <td><code>PF9</code></td>
+      <td>CN9 pin 28</td>
+      <td>SPI5_MOSI AF5</td>
+      <td><strong>TP_SDI</strong> (DIN)</td>
+      <td><span class="pin-num">31</span></td>
+      <td>Commands from MCU → touch IC</td>
+    </tr>
+    <tr data-sig="spi">
+      <td><code>PF10</code></td>
+      <td>CN9 pin 11</td>
+      <td>GPIO out</td>
+      <td><strong>TP_CS</strong></td>
+      <td><span class="pin-num">29</span></td>
+      <td>Active LOW, init HIGH</td>
+    </tr>
+    <tr data-sig="spi">
+      <td><code>PG3</code></td>
+      <td>CN8 pin 16</td>
+      <td>GPIO in / EXTI3</td>
+      <td><strong>TP_IRQ</strong></td>
+      <td><span class="pin-num">28</span></td>
+      <td>Active LOW, MCU pull-up; sets flag in ISR, polled by pin in main loop</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  LCD CONNECTOR QUICK-REF (pins 1–34)                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="section-label" style="margin-top:32px">
+  <div class="section-bar" style="background:var(--border)"></div>
+  <span class="section-title">LCD Connector Quick-Ref — Waveshare P1 / P2, 34-pin</span>
+</div>
+
+<div class="pinout-grid">
+  <div class="pin-cell" data-sig="data"><span class="pin-n">01</span><span class="pin-sig">D0</span><span class="pin-mcu">PD14 · CN7/14</span></div>
+  <div class="pin-cell" data-sig="gnd"><span class="pin-n">02</span><span class="pin-sig">GND</span><span class="pin-mcu">any GND</span></div>
+  <div class="pin-cell" data-sig="gnd"><span class="pin-n">03</span><span class="pin-sig">GND</span><span class="pin-mcu">any GND</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">04</span><span class="pin-sig">D1</span><span class="pin-mcu">PD15 · CN7/16</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">05</span><span class="pin-sig">D2</span><span class="pin-mcu">PD0 · CN9/23</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">06</span><span class="pin-sig">D3</span><span class="pin-mcu">PD1 · CN9/25</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">07</span><span class="pin-sig">D4</span><span class="pin-mcu">PE7 · CN10/20</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">08</span><span class="pin-sig">D5</span><span class="pin-mcu">PE8 · CN10/18</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">09</span><span class="pin-sig">D6</span><span class="pin-mcu">PE9 · CN10/4</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">10</span><span class="pin-sig">D7</span><span class="pin-mcu">PE10 · CN10/24</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">11</span><span class="pin-sig">D8</span><span class="pin-mcu">PE11 · CN10/6</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">12</span><span class="pin-sig">D9</span><span class="pin-mcu">PE12 · CN10/26</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">13</span><span class="pin-sig">D10</span><span class="pin-mcu">PE13 · CN10/10</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">14</span><span class="pin-sig">D11</span><span class="pin-mcu">PE14 · CN10/8</span></div>
+  <div class="pin-cell" data-sig="data"><span class="pin-n">15</span><span class="pin-sig">D12</span><span class="pin-mcu">PE15 · CN10/30</span></div>
+  <div class="pin-cell" data-sig="warn"><span class="pin-n">16</span><span class="pin-sig">D13 ★</span><span class="pin-mcu">PD8 · CN12/10</span></div>
+  <div class="pin-cell" data-sig="warn"><span class="pin-n">17</span><span class="pin-sig">D14 ★</span><span class="pin-mcu">PD9 · CN11/69</span></div>
+  <div class="pin-cell" data-sig="warn"><span class="pin-n">18</span><span class="pin-sig">D15 ★</span><span class="pin-mcu">PD10 · CN12/65</span></div>
+  <div class="pin-cell" data-sig="ctrl"><span class="pin-n">19</span><span class="pin-sig">CS</span><span class="pin-mcu">PD7 · CN9/2</span></div>
+  <div class="pin-cell" data-sig="ctrl"><span class="pin-n">20</span><span class="pin-sig">RS</span><span class="pin-mcu">PF0 · CN9/21</span></div>
+  <div class="pin-cell" data-sig="ctrl"><span class="pin-n">21</span><span class="pin-sig">WR</span><span class="pin-mcu">PD5 · CN9/6</span></div>
+  <div class="pin-cell" data-sig="ctrl"><span class="pin-n">22</span><span class="pin-sig">RD</span><span class="pin-mcu">PD4 · CN9/8</span></div>
+  <div class="pin-cell" data-sig="gpio"><span class="pin-n">23</span><span class="pin-sig">RST</span><span class="pin-mcu">PG2 · CN8/14</span></div>
+  <div class="pin-cell" data-sig="nc"><span class="pin-n">24</span><span class="pin-sig">NC</span><span class="pin-mcu">—</span></div>
+  <div class="pin-cell" data-sig="nc"><span class="pin-n">25</span><span class="pin-sig">NC</span><span class="pin-mcu">—</span></div>
+  <div class="pin-cell" data-sig="nc"><span class="pin-n">26</span><span class="pin-sig">NC</span><span class="pin-mcu">—</span></div>
+  <div class="pin-cell" data-sig="gpio"><span class="pin-n">27</span><span class="pin-sig">BL</span><span class="pin-mcu">PC6 · CN7/1</span></div>
+  <div class="pin-cell" data-sig="spi"><span class="pin-n">28</span><span class="pin-sig">TP_IRQ</span><span class="pin-mcu">PG3 · CN8/16</span></div>
+  <div class="pin-cell" data-sig="spi"><span class="pin-n">29</span><span class="pin-sig">TP_CS</span><span class="pin-mcu">PF10 · CN9/11</span></div>
+  <div class="pin-cell" data-sig="spi"><span class="pin-n">30</span><span class="pin-sig">TP_SCK</span><span class="pin-mcu">PF7 · CN9/26</span></div>
+  <div class="pin-cell" data-sig="spi"><span class="pin-n">31</span><span class="pin-sig">TP_SDI</span><span class="pin-mcu">PF9 · CN9/28</span></div>
+  <div class="pin-cell" data-sig="spi"><span class="pin-n">32</span><span class="pin-sig">TP_SDO</span><span class="pin-mcu">PF8 · CN9/24</span></div>
+  <div class="pin-cell" data-sig="pwr"><span class="pin-n">33</span><span class="pin-sig">VCC 3.3V</span><span class="pin-mcu">CN7/16 or CN8/7</span></div>
+  <div class="pin-cell" data-sig="gnd"><span class="pin-n">34</span><span class="pin-sig">GND</span><span class="pin-mcu">any GND</span></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!--  NOTES                                                 -->
+<!-- ═══════════════════════════════════════════════════════ -->
+
+<div class="notes">
+  <h3>Notes</h3>
+  <ul>
+    <li>LCD pins 24, 25, 26 are not connected — leave open.</li>
+    <li>LCD pins 2, 3 are GND on the Waveshare board — tie to GND or leave open.</li>
+    <li>Do NOT connect CN1 (ST-Link USB) and J-Link simultaneously — they contend on SWD lines.</li>
+    <li>JP3 (T_NRST, 2-pin) must remain installed for J-Link reset control.</li>
+    <li><code>LCD_BL_ON()</code> / <code>LCD_BL_OFF()</code> macros are ineffective — PC6 is in TIM3_CH1 AF2 mode. Backlight is controlled by PWM (enabled in firmware init).</li>
+    <li>RST (PG2) is held HIGH at startup; the ILI9341 library uses a software reset command (0x01) instead of toggling this pin.</li>
+    <li>After first flash, tune <code>XPT_CAL_X_MIN/MAX</code>, <code>XPT_CAL_Y_MIN/MAX</code>, <code>XPT_SWAP_XY</code>, <code>XPT_FLIP_X/Y</code> in <code>BSP/Inc/xpt2046_spi.h</code> to match your panel orientation.</li>
+    <li>Total signal connections: 27 wires (16 data + 4 FMC ctrl + 2 GPIO/PWM + 5 SPI touch + 1 VCC + 3 GND). LCD pins 24–26 NC; LCD pins 2–3 GND (optional).</li>
+  </ul>
+</div>

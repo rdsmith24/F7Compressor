@@ -26,7 +26,7 @@
                 "VDD_VALUE=3300"
             ],
             "intelliSenseMode": "gcc-arm",
-            "compilerPath": "/opt/arm-gnu-toolchain/bin/arm-none-eabi-gcc",
+            "compilerPath": "/opt/homebrew/bin/arm-none-eabi-gcc",
             "compilerArgs": [
                 "-mcpu=cortex-m7",
                 "-mfpu=fpv5-d16",
