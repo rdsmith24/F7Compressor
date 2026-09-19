@@ -10,5 +10,6 @@
     "serialmonitor.parity": "none",
     "serialmonitor.stopBits": 1,
     "serialmonitor.flowControl": "none",
-    "serialmonitor.autoOpen": true
+    "serialmonitor.autoOpen": true,
+    "mcu-debug.debug-tracker-vscode.debugLevel": 0
 }
