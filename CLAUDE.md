@@ -267,7 +267,7 @@ All screens use `lcdFillRect`, `lcdSetTextFont`, `lcdSetCursor`, `lcdPrintf`. Sc
 
 ### Key Pin Assignments
 
-CN7–CN10 are the Zio/Arduino female sockets (populated). CN11/CN12 are the Morpho 2×38 footprints (★ = unpopulated from factory — solder a male pin header to access).
+CN7–CN10 are the Zio/Arduino female sockets (populated). CN11/CN12 are the Morpho 2×35 (70-pin) footprints (★ = unpopulated from factory — solder a male pin header to access). Confirmed directly from the NUCLEO-H723ZG schematic (sheet 5, "MORPHO CONNECTOR LEFT/RIGHT SIDE"), which labels both "Header 35x2".
 
 | Function | Pin | NUCLEO Connector | Notes |
 |---|---|---|---|

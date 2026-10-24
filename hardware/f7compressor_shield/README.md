@@ -175,6 +175,24 @@ Morpho footprint pad numbering, this was verified directly:
 This closes Open Item 1 from the original plan — the Morpho pad mapping is
 no longer a guess.
 
+**Footprint has 8 more pads than the real connectors, confirmed harmless**:
+the real `CN11`/`CN12` are each **35×2 (70-pin)** headers, per the
+NUCLEO-H723ZG schematic (sheet 5, "MORPHO CONNECTOR LEFT/RIGHT SIDE",
+labeled "Header 35x2") — `CLAUDE.md` previously said 2×38, which was
+wrong and has been corrected. The bundled `ST_Morpho_Connector_144_STLink`
+footprint, however, has 74 pads per side (148 total), not 70. Traced every
+pad's position to confirm this is cosmetic, not a mapping error: pads 1-70
+(`CN11`) and 73-142 (`CN12`) land exactly on the real connector's 35 rows
+(row spacing confirms pins 69/70 sit at the real last-row position); the
+extra 8 pads are one phantom row right after the real last pin on each
+side (71/72, 143/144) plus 4 more pads in a separate spot near the top of
+the footprint (145-148), unrelated to the real pin numbering. All four
+signals actually used here (`FMC_D13`/`D14`/`D15`, `RELAY_RUN` — pads 82,
+69, 137, 141) fall well inside the real 1-70-per-side range, so the
+pad-mapping verification above is unaffected. Net effect: 8 extra drilled
+holes near the connector that a real 35×2 socket strip won't cover —
+harmless, not wired to anything, not something to fix before assembly.
+
 ## Mechanical layout (grounded in ST's own drawing, not arbitrary anymore)
 
 The first draft of this board spread `CN7`-`CN10` and `U1` arbitrarily far
