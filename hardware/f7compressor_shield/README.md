@@ -17,7 +17,7 @@ e-stop, and 4-20mA pressure loop. Open `F7CompressorShield.kicad_pro`.
 - **PCB (`.kicad_pcb`)**: all 23 footprints (14 components + 4 LCD mounting
   holes + 5 Nucleo mounting holes) placed with correct net assignments, on
   **one unified board outline** (191.23 x 182.65mm). **Fully routed**: all
-  39 nets, 2 layers, 491 track segments, 27 vias, 0 unconnected items —
+  39 nets, 2 layers, 504 track segments, 26 vias, 0 unconnected items —
   see "Routing" below for how.
 - Two footprint groups on that one outline:
   - **NUCLEO-mating cluster** (`U1`, `CN7`-`CN10`), top-left: laid out to
@@ -334,6 +334,37 @@ rather than guessed:
   LCD module exposes **male** pins (matching the female-socket assumption
   for `J1` below), which resolves half of Open Item 1.
 
+## `J1` pin 1/3 were swapped — a real hardware-safety bug, now fixed
+
+Checking `J1` against the LCD's own manufacturer schematic
+(`Documentation/3.2inch-320-240-Touch-LCD-SCH-2.pdf`, read pin-by-pin via
+exact PDF text coordinates rather than eyeballed) found that real `P1`/`P2`
+pin 1 is **`DC-5V`** (a required power input), not `FMC_D0` — the data
+bus actually starts at pin 3, with pins 1/2 being power/ground:
+
+| Pin | Real signal (LCD schematic) | What this project had |
+|---|---|---|
+| 1 | `DC-5V` (5V power in) | `FMC_D0` |
+| 2 | `GND` | `GND` ✓ |
+| 3 | `D0` | `GND` |
+| 4-34 | `D1`...`D15`, `LCD_CS`, `RS`, `WR`, `RD`, `RST`, `BL_CTRL`, `TP_*`, `VCC-3V3`, `GND` | all already matched ✓ |
+
+Every other pin (4 through 34) already matched the real schematic exactly
+once cross-checked — this was an off-by-one-pair error isolated to just
+the first two positions, not a wholesale mismatch. It also existed in the
+project's own `wiring_diagram.html` (said pin1=`D0`, pins2-3=`GND`), which
+has been corrected too, including adding the previously-undocumented real
+pin 1 (`DC-5V`/`+5V`, required power, not previously wired at all).
+
+**Caught before it mattered**: confirmed with the user that nothing is
+physically jumper-wired to the LCD yet, so this never reached real
+hardware. Fixed by changing `J1`'s net assignment only (pin 1 → `+5V`,
+pin 3 → `FMC_D0`); nothing else changed, since everything else was
+already correct. Re-verified ERC clean and the new pad positions
+numerically (pin 1 and pin 3 land on the same physical column, as
+expected for two odd-numbered pins on a 2-row header). Board was fully
+re-routed.
+
 ## Pin-1 orientation fix (`CN7`-`CN10`, `CN11`, `CN12`, `J1`)
 
 Caught by inspection against the mechanical drawings, not something the
@@ -405,7 +436,7 @@ its intended target coordinate, not offset.
 
 ## Routing
 
-All 39 nets are routed (2 layers, 491 track segments, 27 vias, 0
+All 39 nets are routed (2 layers, 504 track segments, 26 vias, 0
 unconnected items) using **Freerouting** (the standard open-source
 autorouter the KiCad community uses for this — `kicad-cli` has no
 autorouter of its own):
@@ -459,6 +490,23 @@ autorouter of its own):
   re-running DRC immediately rather than assuming the detour worked, and
   redone with exact segment identification instead. Re-verified clean (0
   `clearance`, 0 unconnected, no dangling/crossing) after.
+- The re-route after the `J1` pin 1/3 fix (above) left one more
+  `clearance` violation: a `BL_CTRL` via sitting in a spot packed with
+  `CN12` pads and five other FMC nets (`FMC_D4`-`D7`, `D11`) on both
+  copper layers. An exhaustive grid search (±0.8mm, every 0.01mm) found
+  **no position** for a standard 0.6mm via that cleared every nearby pad
+  and track simultaneously. A single- and two-bend reroute entirely off
+  this via (a plain two-segment F.Cu detour) looked clean at first, but
+  the clearance checker used to verify it only checked endpoint-to-segment
+  distance, which misses two segments that cross cleanly in their
+  interior — DRC caught the resulting `tracks_crossing` against an
+  unrelated `LCD_RST` trace immediately after. Reverted that detour,
+  fixed the checker to test for true intersection, and instead just
+  shrank both vias at this spot to 0.5mm (this board's declared minimum,
+  `min_via_diameter` in the project file) at their **original, unmoved**
+  positions — confirmed clear with 0.23mm/0.25mm margin, no geometry
+  change needed at all once the via was the right size for how tight the
+  neighborhood actually is.
 - DRC after routing: down to 26 findings (fewer than before routing, since splitting the combined Morpho footprint into two correctly-sized CN11/CN12 connectors removed most of the old courtyard overlap with the Zio headers), all in the
   already-documented expected categories (courtyard overlap from the
   intentional Zio/Morpho/mounting-hole proximity, a couple of silkscreen
@@ -466,8 +514,8 @@ autorouter of its own):
   `0 unconnected items`.
 
 **FMC bus signal integrity — checked, neither controlled impedance nor
-length matching is needed**: measured routed lengths range 45-156mm
-(`FMC_D13` to `FMC_D2`). FMC pins are `GPIO_SPEED_FREQ_VERY_HIGH`
+length matching is needed**: measured routed lengths range 31-149mm
+(`FMC_D13` to `FMC_D14`). FMC pins are `GPIO_SPEED_FREQ_VERY_HIGH`
 (`Core/Src/fmc.c`), whose datasheet worst-case rise/fall time is 3.3ns
 (Table 54, speed `11`, 50pF load — realistically more like 30pF/2.4ns for
 the actual trace+pad+ILI9341-input capacitance here). Against the FMC's

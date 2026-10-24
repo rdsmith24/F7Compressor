@@ -395,7 +395,7 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <!-- D[0:15] bus -->
   <circle cx="900" cy="203" r="6" fill="#3498db" stroke="#111" stroke-width="1"/>
   <text x="912" y="207" fill="#3498db" font-size="10" font-weight="700">D[0:15]  16-bit data</text>
-  <text x="912" y="219" fill="#1a4060" font-size="8">P1/P2: D0=pin1, D1=pin4, D2–D15=pins5–18</text>
+  <text x="912" y="219" fill="#1a4060" font-size="8">P1/P2: D0=pin3, D1=pin4, D2–D15=pins5–18 (confirmed against the LCD's own schematic; pin1 is DC-5V power, not D0)</text>
 
   <!-- RS -->
   <circle cx="900" cy="268" r="4" fill="#2980b9" stroke="#111" stroke-width="1"/>
@@ -444,10 +444,11 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
   <!-- VCC -->
   <circle cx="900" cy="660" r="4" fill="#e67e22" stroke="#111" stroke-width="1"/>
   <text x="912" y="664" fill="#e67e22" font-size="10">VCC  3.3 V  · P1/P2 pin 33</text>
+  <text x="912" y="675" fill="#e67e22" font-size="8">VCC  5 V (DC-5V, required power in)  · P1/P2 pin 1</text>
 
   <!-- GND -->
   <circle cx="900" cy="683" r="4" fill="#27ae60" stroke="#111" stroke-width="1"/>
-  <text x="912" y="687" fill="#27ae60" font-size="10">GND  · P1/P2 pins 2, 3, 34</text>
+  <text x="912" y="687" fill="#27ae60" font-size="10">GND  · P1/P2 pins 2, 34</text>
 </g>
 
 <!-- ═════════════════ OIL PRESSURE SWITCH ═════════════════ -->
@@ -666,7 +667,7 @@ code { background: #21262d; color: #79c0ff; padding: 1px 5px; border-radius: 3px
       <tr><td><code>PD7</code></td><td>CN9 pin 2</td><td>FMC_NE1</td><td>LCD_CS</td><td>19</td><td>Bank 1 chip select</td></tr>
       <tr><td><code>PD4</code></td><td>CN9 pin 8</td><td>FMC_NOE</td><td>RD</td><td>22</td><td>Read strobe</td></tr>
       <tr><td><code>PD5</code></td><td>CN9 pin 6</td><td>FMC_NWE</td><td>WR</td><td>21</td><td>Write strobe</td></tr>
-      <tr><td><code>PD14, PD15</code></td><td>CN7 pin 14, 16</td><td>FMC_D0, D1</td><td>D0, D1</td><td>1, 4</td><td rowspan="4">16-bit data bus AF12; GND on pins 2, 3</td></tr>
+      <tr><td><code>PD14, PD15</code></td><td>CN7 pin 14, 16</td><td>FMC_D0, D1</td><td>D0, D1</td><td>3, 4</td><td rowspan="4">16-bit data bus AF12; GND on pin 2, +5V (DC-5V, required) on pin 1</td></tr>
       <tr><td><code>PD0, PD1</code></td><td>CN9 pin 23, 25</td><td>FMC_D2, D3</td><td>D2, D3</td><td>5, 6</td></tr>
       <tr><td><code>PE7–PE15</code></td><td>CN10: P20, P18, P4, P24, P6, P26, P10, P8, P30</td><td>FMC_D4–D12</td><td>D4–D12</td><td>7–15</td></tr>
       <tr><td><code>PD8–PD10</code></td><td>CN12-P10★, CN11-P69★, CN12-P65★</td><td>FMC_D13–D15</td><td>D13–D15</td><td>16–18</td></tr>
