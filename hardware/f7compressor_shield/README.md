@@ -17,7 +17,7 @@ e-stop, and 4-20mA pressure loop. Open `F7CompressorShield.kicad_pro`.
 - **PCB (`.kicad_pcb`)**: all 23 footprints (14 components + 4 LCD mounting
   holes + 5 Nucleo mounting holes) placed with correct net assignments, on
   **one unified board outline** (191.23 x 182.65mm). **Fully routed**: all
-  39 nets, 2 layers, 517 track segments, 26 vias, 0 unconnected items —
+  39 nets, 2 layers, 491 track segments, 27 vias, 0 unconnected items —
   see "Routing" below for how.
 - Two footprint groups on that one outline:
   - **NUCLEO-mating cluster** (`U1`, `CN7`-`CN10`), top-left: laid out to
@@ -146,52 +146,55 @@ the Zio/Morpho headers is populated (for mechanical fit) but left on
 no-connect. See `CLAUDE.md` for the full signal-to-pin reference this was
 built from.
 
-## Morpho pad mapping (resolved)
+## Morpho: CN11 and CN12 are real, separate connectors (not a combined part)
 
 Three FMC data lines (`PD8`/`PD9`/`PD10` = `FMC_D13`-`D15`) and the RUN
 relay (`PG4`) are only reachable on the Morpho connectors (CN11/CN12),
-which are unpopulated from the factory. Rather than guess at ST's official
-Morpho footprint pad numbering, this was verified directly:
+which are unpopulated from the factory — you solder male pin headers onto
+the Nucleo at those two locations, and this shield needs matching female
+sockets.
 
-- KiCad ships an official `NUCLEO144-*` symbol family (`MCU_Module.kicad_sym`)
-  built against the bundled `Module:ST_Morpho_Connector_144_STLink`
-  footprint. The symbol's 144 numbered pins are real MCU GPIO names (same
-  physical board/connector layout is shared across the whole STM32
-  Nucleo-144 family, so the H743ZI variant's pin map applies unchanged to
-  our H723ZG).
-- Cross-checking against the 4 known Morpho signals from `CLAUDE.md`
-  confirms the exact pad-numbering rule: **pad N = CN11 physical pin N for
-  N 1-72, pad N = CN12 physical pin (N-72) for N 73-144.** (`PD9`→pad 69→
-  CN11 pin 69 ✓, `PG4`→pad 141→CN12 pin 69 ✓, `PD8`→pad 82→CN12 pin 10 ✓,
-  `PD10`→pad 137→CN12 pin 65 ✓ — all four match `CLAUDE.md` exactly.)
-- The schematic instantiates `MCU_Module:NUCLEO144-F429ZI` directly (not
-  the `H743ZI` variant, which only `extends` F429ZI and adds nothing of its
-  own — instantiating it directly avoids a symbol-cache "extends" resolution
-  issue that otherwise makes ERC silently drop all of U1's pins). The
-  footprint pad numbers were confirmed to match the symbol pin numbers
-  1:1 when building the PCB (every net resolved to a real pad, no
-  mismatches).
+**This went through two iterations.** The first used KiCad's bundled
+`Module:ST_Morpho_Connector_144_STLink` footprint (via the official
+`MCU_Module:NUCLEO144-F429ZI` symbol) as a single combined part for both
+CN11 and CN12, with pad numbers cross-checked against `CLAUDE.md`'s known
+signals (pad N = CN11 pin N for N 1-72, pad N = CN12 pin N-72 for N
+73-144 — `PD9`→pad 69→CN11 pin 69, `PG4`→pad 141→CN12 pin 69, `PD8`→pad
+82→CN12 pin 10, `PD10`→pad 137→CN12 pin 65, all four verified). That
+worked electrically, but direct inspection (prompted by counting pins on
+the real board) found two real problems with it:
 
-This closes Open Item 1 from the original plan — the Morpho pad mapping is
-no longer a guess.
+- The real `CN11`/`CN12` are each **35×2 (70-pin)** headers, confirmed
+  from the NUCLEO-H723ZG schematic (sheet 5, "MORPHO CONNECTOR LEFT/RIGHT
+  SIDE", labeled "Header 35x2"). `CLAUDE.md` previously said 2×38, which
+  was wrong and has been corrected. The bundled footprint has 74 pads per
+  side (148 total) — 8 more than the real connectors.
+- It's **one footprint representing two physically separate connectors**,
+  which doesn't match the real board and isn't something you can order as
+  a single part.
 
-**Footprint has 8 more pads than the real connectors, confirmed harmless**:
-the real `CN11`/`CN12` are each **35×2 (70-pin)** headers, per the
-NUCLEO-H723ZG schematic (sheet 5, "MORPHO CONNECTOR LEFT/RIGHT SIDE",
-labeled "Header 35x2") — `CLAUDE.md` previously said 2×38, which was
-wrong and has been corrected. The bundled `ST_Morpho_Connector_144_STLink`
-footprint, however, has 74 pads per side (148 total), not 70. Traced every
-pad's position to confirm this is cosmetic, not a mapping error: pads 1-70
-(`CN11`) and 73-142 (`CN12`) land exactly on the real connector's 35 rows
-(row spacing confirms pins 69/70 sit at the real last-row position); the
-extra 8 pads are one phantom row right after the real last pin on each
-side (71/72, 143/144) plus 4 more pads in a separate spot near the top of
-the footprint (145-148), unrelated to the real pin numbering. All four
-signals actually used here (`FMC_D13`/`D14`/`D15`, `RELAY_RUN` — pads 82,
-69, 137, 141) fall well inside the real 1-70-per-side range, so the
-pad-mapping verification above is unaffected. Net effect: 8 extra drilled
-holes near the connector that a real 35×2 socket strip won't cover —
-harmless, not wired to anything, not something to fix before assembly.
+**Current design**: `CN11` and `CN12` are two separate instances of the
+same plain `Connector_Generic:Conn_02x35_Odd_Even` / `PinSocket_2x35_
+P2.54mm_Vertical` part already used (and pin-1-verified) for `CN7`-`CN10`
+— exactly 70 pads each, nothing extra. Pin numbers and GPIO assignments
+are ST's own real-board numbering, from UM1974 Table 21 ("ST morpho
+connector for NUCLEO-F207ZG, ..., NUCLEO-H743ZI" — the same family this
+H723ZG board belongs to) — cross-checked against `CLAUDE.md` and found to
+match exactly for all six signals actually used (`FMC_D13`→CN12 pin 10,
+`FMC_D14`→CN11 pin 69, `FMC_D15`→CN12 pin 65, `RELAY_RUN`→CN12 pin 69,
+`RELAY_IN2`→CN12 pin 68, `+5V_IN`→CN11 pin 6).
+
+**Pin-1 orientation for CN11/CN12**, determined the same rigorous way as
+`CN7`-`CN10`/`J1` (see below) rather than assumed: zoomed into UM1974's
+whole-board mechanical drawing (Figure 6) at both connectors' own pads and
+found the square pin-1 marker on the **left column** for both — same
+absolute direction for both connectors, not mirrored between them, even
+though CN11 and CN12 sit on opposite sides of the board. Placed using the
+same `place_mirrored()` helper as the Zio headers.
+
+This closes Open Item 1 from the original plan — the Morpho pad mapping
+is no longer a guess, and the connectors now mechanically match the real
+board part-for-part.
 
 ## Mechanical layout (grounded in ST's own drawing, not arbitrary anymore)
 
@@ -331,7 +334,7 @@ rather than guessed:
   LCD module exposes **male** pins (matching the female-socket assumption
   for `J1` below), which resolves half of Open Item 1.
 
-## Pin-1 orientation fix (`CN7`-`CN10`, `J1`)
+## Pin-1 orientation fix (`CN7`-`CN10`, `CN11`, `CN12`, `J1`)
 
 Caught by inspection against the mechanical drawings, not something the
 earlier pin-mapping work checked: the generic KiCad "Odd_Even" connector
@@ -374,15 +377,35 @@ asserted:
   `J1` pad 1 (`FMC_D0`, the LCD's real physical pin 1) is now on the
   outer column, matching both mechanical drawings. ERC/DRC clean; the
   board was fully re-routed since net-to-pad geometry changed.
-- **Not checked for this**: `U1` (Morpho) doesn't have this risk — it uses
-  the dedicated ST footprint, already pin-by-pin verified (see "Morpho pad
-  mapping" above). `J2`, `J5`, `J6`, `SW1`-`SW3` don't either, since both
-  ends of those connections are defined by this project, not an external
-  fixed pinout to mismatch against.
+- **CN11/CN12**, added after the Morpho split above, use the exact same
+  `place_mirrored()` fix as `CN7`-`CN10` — they're the same footprint
+  family, so the same risk applies. Pin 1's real location (left column,
+  confirmed from UM1974 Figure 6) was determined *before* placing them,
+  not discovered as a bug afterward this time.
+- **Not checked for this**: `J2`, `J5`, `J6`, `SW1`-`SW3` don't have this
+  risk, since both ends of those connections are defined by this project,
+  not an external fixed pinout to mismatch against.
+
+**Second bug found and fixed while adding CN11/CN12**: `place_mirrored()`
+mirrors pad/graphic positions by hand (see above), but was then calling
+`fp.SetPosition(pos_mm)` directly — which moves the footprint's *anchor*
+to `pos_mm`, not pad 1. Because the hand-mirror doesn't move the anchor
+itself, pad 1 ends up one full pin pitch (2.54mm) away from `pos_mm`, not
+at it. Caught by comparing `CN8`'s actual pad-1 position against
+`CN8_OFFSET`'s intended target: they differed by exactly 2.54mm. This
+affected every connector `place_mirrored()` had touched — `CN7`-`CN10`
+and `J1` were each mechanically offset by one pin pitch from their
+intended, pixel-measured positions (still on the *correct side*, since
+mirroring direction was unaffected, just not at the *correct distance*).
+Fixed by computing pad 1's post-mirror local offset from the anchor and
+solving for the anchor position that puts pad 1 exactly at `pos_mm`.
+Re-verified numerically after the fix: all six mirrored connectors'
+(`CN7`, `CN8`, `CN9`, `CN10`, `CN11`, `CN12`) pad 1 now lands exactly on
+its intended target coordinate, not offset.
 
 ## Routing
 
-All 39 nets are routed (2 layers, 517 track segments, 26 vias, 0
+All 39 nets are routed (2 layers, 491 track segments, 27 vias, 0
 unconnected items) using **Freerouting** (the standard open-source
 autorouter the KiCad community uses for this — `kicad-cli` has no
 autorouter of its own):
@@ -418,15 +441,33 @@ autorouter of its own):
   immediately rather than trusting the hand calculation; the final
   position was solved for clearance against both tracks simultaneously.
   Re-verified clean (0 `clearance` findings, 0 unconnected) after.
-- DRC after routing: same 137 findings as before routing, all in the
+- The re-route after the CN11/CN12 split (above) left 4 more `clearance`
+  violations: a long `RELAY_IN3` trace (CN9 pin 4 to J2 pin 5) squeezed
+  too close to both `CN10` pad 19 and a `J2` GND pad in the same tight
+  spot (the two constraints left essentially zero margin for a single
+  straight segment — a perpendicular nudge that cleared one made the
+  other worse), and a short `GND` trace too close to a `CN8` pad. Fixed
+  by computationally searching for a clear detour path, checking every
+  candidate against *all* nearby pads **and tracks** (not just pads — an
+  earlier instinct to check pads only is exactly why the first nudge
+  attempt above over-corrected) before committing to it, then replacing
+  only the exact flagged segments by precise coordinate match. First
+  attempt at the `RELAY_IN3` detour used a bounding-box removal that
+  over-matched an unrelated upstream segment and anchored the new path to
+  the wrong endpoint (off by 0.14mm from the real one) — introduced
+  dangling tracks, a crossing, and 2 unconnected items; caught by
+  re-running DRC immediately rather than assuming the detour worked, and
+  redone with exact segment identification instead. Re-verified clean (0
+  `clearance`, 0 unconnected, no dangling/crossing) after.
+- DRC after routing: down to 26 findings (fewer than before routing, since splitting the combined Morpho footprint into two correctly-sized CN11/CN12 connectors removed most of the old courtyard overlap with the Zio headers), all in the
   already-documented expected categories (courtyard overlap from the
   intentional Zio/Morpho/mounting-hole proximity, a couple of silkscreen
   warnings from tight stacking) — nothing routing-related, and
   `0 unconnected items`.
 
 **FMC bus signal integrity — checked, neither controlled impedance nor
-length matching is needed**: measured routed lengths range 30-160mm
-(`FMC_D13` to `FMC_D14`). FMC pins are `GPIO_SPEED_FREQ_VERY_HIGH`
+length matching is needed**: measured routed lengths range 45-156mm
+(`FMC_D13` to `FMC_D2`). FMC pins are `GPIO_SPEED_FREQ_VERY_HIGH`
 (`Core/Src/fmc.c`), whose datasheet worst-case rise/fall time is 3.3ns
 (Table 54, speed `11`, 50pF load — realistically more like 30pF/2.4ns for
 the actual trace+pad+ILI9341-input capacitance here). Against the FMC's
@@ -475,7 +516,7 @@ unreviewed.
 
 ```
 kicad-cli sch erc  F7CompressorShield.kicad_sch   # 0 errors, 0 warnings
-kicad-cli pcb drc  F7CompressorShield.kicad_pcb   # 0 unconnected, 137 findings, all in the
+kicad-cli pcb drc  F7CompressorShield.kicad_pcb   # 0 unconnected, 26 findings, all in the
                                                    # expected courtyard/silk categories from the
                                                    # intentional Zio/Morpho overlap (see above)
 ```
