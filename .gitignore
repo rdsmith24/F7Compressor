@@ -4,3 +4,6 @@ Documentation/
 **/.history/
 F7Compressor.jdebug.user
 claude_resume.txt
+*.dsn
+*.ses
+**/~*.lck
