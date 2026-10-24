@@ -1,5 +1,6 @@
 build/
 Documentation/
 **/.DS_Store
+**/.history/
 F7Compressor.jdebug.user
 claude_resume.txt
