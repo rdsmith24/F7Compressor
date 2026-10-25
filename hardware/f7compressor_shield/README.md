@@ -17,7 +17,7 @@ e-stop, and 4-20mA pressure loop. Open `F7CompressorShield.kicad_pro`.
 - **PCB (`.kicad_pcb`)**: all 23 footprints (14 components + 4 LCD mounting
   holes + 5 Nucleo mounting holes) placed with correct net assignments, on
   **one unified board outline** (191.23 x 182.65mm). **Fully routed**: all
-  39 nets, 2 layers, 504 track segments, 26 vias, 0 unconnected items —
+  39 nets, 2 layers, 537 track segments, 23 vias, 0 unconnected items —
   see "Routing" below for how.
 - Two footprint groups on that one outline:
   - **NUCLEO-mating cluster** (`U1`, `CN7`-`CN10`), top-left: laid out to
@@ -63,14 +63,46 @@ wired up — useful for firmware bring-up. `SW3` adds a third switch for a
   is left unconnected. Toggling the switch mimics a NC switch's two states —
   closed (pin2–pin1 connected, net pulled to GND) or open (net floating,
   pulled HIGH by the MCU's internal pull-up).
-- No bundled KiCad footprint matches the MTS-1's real pin spacing, so
-  `gen_pcb.py`'s `make_mts1_footprint()` builds it directly: 3 round THT
-  pads at the standard 4.7mm MTS-1/MTS-2/MTS-3 "PC pin" pitch, with the
-  center pad (pin 2, common) drawn square to mark pin 1. Double-check this
-  pitch against the actual MTS-1 you have on hand before populating.
+- **Real part: Dailywell `1MS1T1B1M1QES-5`** (SPDT, PC-pin, same MTS-1
+  family). No bundled KiCad footprint matches it, so `gen_pcb.py`'s
+  `make_mts1_footprint()` builds it directly: 3 round THT pads, center pad
+  (pin 2, common) drawn square to mark pin 1. Pin spacing confirmed against
+  the real part's own listed dimensions at **4.70mm** — matches this
+  footprint exactly, no change needed.
+- **No PCB mounting hole for the bushing**: the real part has a confirmed
+  6.35mm (0.25") mounting bushing, but that's nearly as wide as its whole
+  body (6.86mm) — there's no room for it to sit beside the 3 pins within
+  that footprint. That's strong physical evidence this bushing mounts
+  through an enclosure panel cutout, not the PCB (the electrical pins
+  solder to the board; the switch's mechanical mounting is panel-side).
+  Confirmed with the user before leaving it out rather than guessing a
+  PCB-side hole position that doesn't physically make sense.
 - `J3`/`J4` (the old terminal references) no longer exist; `J5` (pressure
   loop) is unchanged since it isn't a switch — the 4-20mA loop still needs
   a real field terminal, not a toggle.
+
+### Generic 3D model for `SW1`-`SW3`
+
+No bundled or downloadable 3D model matches this part (or any close
+MTS-1-family equivalent), so a simple placeholder was built by hand —
+`3dmodels/SW_MTS1_generic.wrl`, a black box (body) plus a cylinder+sphere
+(lever stub), sized to the real part's known 12.7 x 6.86mm body envelope.
+It's explicitly a generic stand-in for visualization ("can be any brand"),
+not a dimensionally accurate model of the real switch.
+
+Attaching it surfaced a real scaling bug, found by measurement rather than
+guessing: KiCad interprets raw VRML coordinates at a fixed 2.54 scale
+(mm per 0.1", a legacy VRML convention) regardless of what unit the model
+was actually authored in. The model here is authored directly in mm, so
+`m_Scale = 1/2.54` is needed to display it correctly. The first attempt
+assumed the usual inches-to-mm factor (`1/25.4`) and undershot by 10x
+(rendered as a barely-visible speck); the actual factor was found by
+pixel-measuring the rendered box at `scale=1.0` against the footprint's
+own known pad pitch (a precise, calibrated measurement, not an estimate)
+and solving for the scale that makes the box match the real 12.7 x 6.86mm
+footprint outline exactly — confirmed by rendering again afterward and
+re-measuring. Model path is `${KIPRJMOD}/3dmodels/SW_MTS1_generic.wrl`,
+project-relative so it travels with the repo.
 
 ### `RUN_SENSE` (`SW3`) — new signal, not in firmware yet
 
@@ -114,9 +146,16 @@ doesn't change firmware.
 
 ## Power input (J6)
 
-`J6` is a 2-pin screw terminal (same `TerminalBlock` family as `J5`,
-5.08mm pitch) for an external 5VDC supply, so one connector on this board
-can power the Nucleo and everything downstream of it.
+`J6` is a 2-pin screw terminal for an external 5VDC supply, so one
+connector on this board can power the Nucleo and everything downstream of
+it. **Real part: Phoenix Contact `1727010`** (MKDS 1/2-3,81 — confirmed
+2-position, 3.81mm pitch, horizontal THT from distributor listings). KiCad
+ships this exact footprint
+(`TerminalBlock_Phoenix_MKDS-1-2-3.81_1x02_P3.81mm_Horizontal`), used
+directly — no custom part needed, unlike the switches above. This
+replaced the earlier generic placeholder (`TerminalBlock_MaiXu_MX126`,
+5.08mm pitch). `J5` (pressure loop) uses the same real part and footprint
+now too, once a part number was given for it.
 
 - `J6` pin 1 (`+5V_IN`) goes to `U1` pin 6 — **Morpho CN11 pin 6, E5V** —
   the documented primary power source for this whole project
@@ -436,7 +475,7 @@ its intended target coordinate, not offset.
 
 ## Routing
 
-All 39 nets are routed (2 layers, 504 track segments, 26 vias, 0
+All 39 nets are routed (2 layers, 537 track segments, 23 vias, 0
 unconnected items) using **Freerouting** (the standard open-source
 autorouter the KiCad community uses for this — `kicad-cli` has no
 autorouter of its own):
@@ -507,6 +546,19 @@ autorouter of its own):
   positions — confirmed clear with 0.23mm/0.25mm margin, no geometry
   change needed at all once the via was the right size for how tight the
   neighborhood actually is.
+- The re-route after swapping in the real `SW1`-`SW3`/`J6` part footprints
+  (above) shifted the board layout slightly and left 4 more `clearance`
+  violations, all in different spots (`FMC_NE1` and `RELAY_IN4` each
+  squeezed between two pad rows with no single straight line clearing
+  both; `FMC_A0` similarly, needing a 2-bend detour found by a systematic
+  bend-point search rather than guessing; and a `BL_CTRL` run pinched
+  between an `FMC_NOE` via and the just-added `FMC_A0` detour, fixed with
+  a deliberately small -0.03mm shift applied consistently across the
+  whole connected straight run, not just the one flagged segment, so nothing
+  was left dangling). Each fix was found by a general-purpose clearance
+  checker that tests candidate paths/shifts against every nearby pad and
+  track (not hand-picked guesses) before applying anything. Re-verified
+  clean (0 `clearance`, 0 unconnected) after.
 - DRC after routing: down to 26 findings (fewer than before routing, since splitting the combined Morpho footprint into two correctly-sized CN11/CN12 connectors removed most of the old courtyard overlap with the Zio headers), all in the
   already-documented expected categories (courtyard overlap from the
   intentional Zio/Morpho/mounting-hole proximity, a couple of silkscreen

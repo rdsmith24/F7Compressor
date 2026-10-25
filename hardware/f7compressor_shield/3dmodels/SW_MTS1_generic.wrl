@@ -1,0 +1,50 @@
+#VRML V2.0 utf8
+# Generic placeholder model for an MTS-1 style SPDT toggle switch
+# (used for Dailywell 1MS1T1B1M1QES-5). Not a real part's exact geometry --
+# a simple box (body) + cylinder (bushing/lever stub), for visualization
+# only. Body footprint sized to the real part's 12.7 x 6.86mm envelope.
+Transform {
+  translation 4.7 0 4.5
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.08 0.08 0.08
+          specularColor 0.2 0.2 0.2
+          ambientIntensity 0.3
+        }
+      }
+      geometry Box { size 12.7 6.86 9.0 }
+    }
+  ]
+}
+Transform {
+  translation 4.7 0 10.5
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.75 0.75 0.78
+          specularColor 0.9 0.9 0.9
+          shininess 0.6
+        }
+      }
+      geometry Cylinder { height 6.0 radius 1.6 top TRUE bottom FALSE side TRUE }
+    }
+  ]
+}
+Transform {
+  translation 4.7 0 13.6
+  children [
+    Shape {
+      appearance Appearance {
+        material Material {
+          diffuseColor 0.75 0.75 0.78
+          specularColor 0.9 0.9 0.9
+          shininess 0.6
+        }
+      }
+      geometry Sphere { radius 0.9 }
+    }
+  ]
+}
