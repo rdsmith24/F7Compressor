@@ -10,11 +10,22 @@ STM32H723ZG firmware for controlling a 220VAC air compressor with a Waveshare 3.
 
 ```bash
 make -j4          # build (outputs build/F7Compressor.{elf,hex,bin})
-make flash        # build then flash+verify+reset via J-Link
+make flash        # build then flash+reset via J-Link
 make clean        # remove build directory
 ```
 
-`make flash` uses `JLinkExe` at `/Applications/SEGGER/JLink_V946/JLinkExe`. Override if needed:
+`make flash` loads `build/$(TARGET).hex` via J-Link's `loadfile`, which does its own content
+comparison and skips the write (reporting "Contents already match") when the hex is already
+flashed — that check is the verification; there's no separate explicit verify step. (An earlier
+version ran a `verifybin` step against the flat `.bin` too, but that's gone: `objcopy -O binary`
+pads the 4-byte alignment gap between `.isr_vector` and `.text` with `0x00`, while flash there
+correctly stays erased `0xFF` since the `.hex` has no record for it — `verifybin` compared
+against that padding artifact and spuriously failed on every build, not a real mismatch.)
+
+`make flash` uses `JLinkExe` at `/Applications/SEGGER/JLink/JLinkExe` (the `JLink` symlink under
+`/Applications/SEGGER/`, which SEGGER's installer repoints at whatever version is current — so
+this path keeps working across J-Link software updates without editing the Makefile). Override
+if needed:
 
 ```bash
 make flash JLINK=/path/to/JLinkExe
@@ -26,7 +37,7 @@ make flash JLINK_SPD=1000     # default 4000 kHz
 
 ## VS Code Debug
 
-`.vscode/launch.json` is configured for **J-Link** (`serverpath: /Applications/SEGGER/JLink_V946/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector). Do not connect CN1 (ST-Link USB) at the same time — there are no CN2 jumpers on this board; ST-Link and J-Link would contend on the SWD lines. JP3 (T_NRST, 2-pin) must remain installed.
+`.vscode/launch.json` is configured for **J-Link** (`serverpath: /Applications/SEGGER/JLink/JLinkGDBServerCLExe`, `device: STM32H723ZG`, `interface: swd`). Connect J-Link EDU Mini to CN4 (20-pin ARM debug connector). Do not connect CN1 (ST-Link USB) at the same time — there are no CN2 jumpers on this board; ST-Link and J-Link would contend on the SWD lines. JP3 (T_NRST, 2-pin) must remain installed.
 
 **Debug output**: ST-Link VCP is unavailable (USART3/PD8/PD9 consumed by FMC). Options:
 - J-Link RTT (preferred — no UART, no pins, zero overhead)

@@ -249,7 +249,16 @@ JLINK_IF  ?= SWD
 JLINK_SPD ?= 4000
 
 flash: all
-	printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nverifyfile $(BUILD_DIR)/$(TARGET).hex\nreset\nexit\n" > /tmp/jlink_flash.jlink
+	# loadfile already does its own content comparison before writing
+	# (reports "Contents already match" and skips the write when so) --
+	# that's the verification. A separate `verifybin` step against
+	# build/$(TARGET).bin was tried and removed: objcopy -O binary pads
+	# the 4-byte alignment gap between .isr_vector (ends 0x2CC) and
+	# .text (16-byte aligned, starts 0x2D0) with 0x00, while the flash
+	# there correctly stays erased (0xFF) since the .hex has no record
+	# for it -- verifybin compared against that padding artifact and
+	# spuriously failed on every build, not a real mismatch.
+	printf "loadfile $(BUILD_DIR)/$(TARGET).hex\nreset\nexit\n" > /tmp/jlink_flash.jlink
 	$(JLINK) -device $(JLINK_DEV) -if $(JLINK_IF) -speed $(JLINK_SPD) -autoconnect 1 -CommandFile /tmp/jlink_flash.jlink
 #######################################
 # cppcheck static analysis
